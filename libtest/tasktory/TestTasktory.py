@@ -301,9 +301,15 @@ class TestTasktory(unittest.TestCase):
 
         self.check(t3,'T',2,200,100,200,300,None,3,Tasktory.WAIT)
         self.check(t3['T1'],'T1',1,110,110,110,110,t3,0,Tasktory.OPEN)
-        # TODO: ここから
+        self.check(t3['T2'],'T2',2,220,120,220,340,t3,1,Tasktory.WAIT)
+        self.check(t3['T2']['T21'],'T21',2,221,121,221,342,t3['T2'],0,Tasktory.WAIT)
+        self.check(t3['T3'],'T3',2,230,230,230,230,t3,0,Tasktory.WAIT)
+
         # コメント
-        pass
+        t1 = Tasktory('T', 1); t1.comments = "コメント"
+        t2 = Tasktory('T', 2); t2.comments = "あいうえお"
+        t3 = t1 + t2
+        self.assertEqual(t3.comments, "あいうえお")
 
     #==========================================================================
     # タスクトリメソッド
