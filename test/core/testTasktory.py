@@ -7,7 +7,7 @@ import unittest
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 append_path = lambda p:sys.path.append(CURRENT_DIR + '/' + p)
-append_path('../../lib/tasktory')
+append_path('../../lib/core')
 
 from Tasktory import Tasktory
 
