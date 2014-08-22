@@ -1,13 +1,14 @@
 Tasktory設計メモ
 
-file_system     - タスクトリの実体
-
 core
-|-- tasktory    - タスクを表現するデータ構造
-|-- synchronizer- タスクトリと各UIの同期を管理するシステム
-`-- converter   - タスクトリと各UI向けデータ表現を変換するシステム
+|-- Tasktory    - タスクトリデータ構造定義
+`-- Manager     - ファイルシステム（タスクトリの実体）の管理、同期、変換
 
-interface       - タスクトリの作成／管理を行うためのUI
-|-- journal     - テキストファイルによるタスク管理
-|-- report      - 報告書自動生成機能（出力専用）
-`-- server      - HTML/JavaScriptによるタスク管理
+trigger         - イベントトリガー
+
+ui
+|-- Journal     - タスクトリツリーと日報の変換機能
+|-- Report      - 作業報告書出力機能
+`-- Server      - HTML配信機能
+
+
