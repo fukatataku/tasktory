@@ -1,5 +1,7 @@
 # -*- encoding:utf-8 -*-
 
+import os
+
 class Tasktory(object):
 
     OPEN = 'open'
@@ -23,8 +25,8 @@ class Tasktory(object):
         # 終了日（グレゴリオ序数）
         self.end = None
 
-        # 作業時間（分）
-        self.time = 0
+        # 作業時間（開始時刻と作業時間のタプルのリスト）（エポック秒と分）
+        self.timetable = []
 
         # ステータス（OPEN or WAIT or CLOSE）
         self.status = Tasktory.OPEN
@@ -124,8 +126,8 @@ class Tasktory(object):
         # 終了日はタイムスタンプが新しい方を使用する
         ret.end = new.end
 
-        # 作業時間は足す
-        ret.time = self.time + other.time
+        # 作業時間は結合する。重複の解決はここではしない
+        ret.timetable = [(s,t) for s,t in old.timetable + new.timetable]
 
         # ステータスはタイムスタンプが新しい方を使用する
         ret.status = new.status
@@ -147,26 +149,37 @@ class Tasktory(object):
     #==========================================================================
     # タスクトリメソッド
     #==========================================================================
+    def get_path(self, root='/'):
+        return os.path.join(self.parent.get_path(root) if self.parent
+                else root, self.name)
+
     def get_last_timestamp(self):
         """小タスクを含めた、最新のタイムスタンプを取得する
         """
         return max([self.timestamp] +
                 [c.get_last_timestamp() for c in self.children])
 
-    def add_time(self, time):
-        """作業時間を追加する
-        初めて作業時間が追加された場合は開始日が記録される
-        time - 作業時間を分で指定する
+    def get_time(self):
+        """合計作業時間（分）を返す
         """
-        if self.time == 0 and time > 0:
-            self.start = self.timestamp
-        self.time += time
-        return self
+        return sum(t for _,t in self.timetable)
 
     def get_total_time(self):
         """子タスクトリも含めた作業時間の合計を取得する
         """
-        return self.time + sum([c.get_total_time() for c in self.children])
+        return self.get_time() +\
+                sum([c.get_total_time() for c in self.children])
+
+    def add_time(self, start, time):
+        """作業時間を追加する
+        初めて作業時間が追加された場合は開始日が記録される
+        start - 作業開始時刻をエポック秒で指定する
+        time  - 作業時間を分で指定する
+        """
+        if not self.timetable and time > 0:
+            self.start = self.timestamp
+        self.timetable.append((start, time))
+        return self
 
     def append(self, child):
         """子タスクトリリストにタスクトリを加える
@@ -175,6 +188,21 @@ class Tasktory(object):
         self.children.append(child)
         child.parent = self
         return self
+
+    def is_open(self):
+        """ステータスがOPENならTrueを返す
+        """
+        return self.status == Tasktory.OPEN
+
+    def is_wait(self):
+        """ステータスがWAITならTrueを返す
+        """
+        return self.status == Tasktory.WAIT
+
+    def is_close(self):
+        """ステータスがCLOSEならTrueを返す
+        """
+        return self.status == Tasktory.CLOSE
 
     def open(self):
         """タスクトリを作業中にする
@@ -203,21 +231,6 @@ class Tasktory(object):
         self.end = self.timestamp
         return self
 
-    def is_open(self):
-        """ステータスがOPENならTrueを返す
-        """
-        return self.status == Tasktory.OPEN
-
-    def is_wait(self):
-        """ステータスがWAITならTrueを返す
-        """
-        return self.status == Tasktory.WAIT
-
-    def is_close(self):
-        """ステータスがCLOSEならTrueを返す
-        """
-        return self.status == Tasktory.CLOSE
-
     def get_level(self):
         """タスクトリの階層を返す
         """
@@ -230,7 +243,7 @@ class Tasktory(object):
         task.deadline = self.deadline
         task.start = self.start
         task.end = self.end
-        task.time = self.time
+        task.timetable = [(s,t) for s,t in self.timetable]
         task.status = self.status
         task.parent = self.parent
         task.children = [c.copy() for c in self.children]

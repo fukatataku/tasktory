@@ -20,7 +20,8 @@ class TestTasktory(unittest.TestCase):
         self.assertEqual(task.deadline, deadline)
         self.assertEqual(task.start, start)
         self.assertEqual(task.end, end)
-        self.assertEqual(task.time, time)
+        self.assertEqual(task.get_time(), time)
+        #self.assertEqual(task.time, time)
         #self.assertEqual(task.parent, parent)
         self.assertTrue(task.parent is parent)
         self.assertEqual(len(task.children), childnum)
@@ -213,14 +214,14 @@ class TestTasktory(unittest.TestCase):
         # 期日／開始日／終了日／作業時間／ステータス
         t10 = Tasktory('hoge', 1)
         t11 = Tasktory('hoge', 1); t11.deadline = 10; t11.start = 100
-        t11.end = 101; t11.time = 120; t11.status = Tasktory.WAIT
+        t11.end = 101; t11.timetable = [(1, 120)]; t11.status = Tasktory.WAIT
         t12 = Tasktory('hoge', 1); t12.deadline = 20; t12.start = 200
-        t12.end = 202; t12.time = 210; t12.status = Tasktory.CLOSE
+        t12.end = 202; t12.timetable = [(1, 210)]; t12.status = Tasktory.CLOSE
         t20 = Tasktory('hoge', 2)
         t21 = Tasktory('hoge', 2); t21.deadline = 10; t21.start = 100
-        t21.end = 101; t21.time = 120; t21.status = Tasktory.WAIT
+        t21.end = 101; t21.timetable = [(1, 120)]; t21.status = Tasktory.WAIT
         t22 = Tasktory('hoge', 2); t22.deadline = 20; t22.start = 200
-        t22.end = 202; t22.time = 210; t22.status = Tasktory.CLOSE
+        t22.end = 202; t22.timetable = [(1, 210)]; t22.status = Tasktory.CLOSE
         self.check(t10+t10,'hoge',1,None,None,None,0,None,0,Tasktory.OPEN)
         self.check(t10+t11,'hoge',1,10,100,101,120,None,0,Tasktory.WAIT)
         self.check(t10+t12,'hoge',1,20,200,202,210,None,0,Tasktory.CLOSE)
@@ -265,21 +266,21 @@ class TestTasktory(unittest.TestCase):
 
         # 親／子タスクトリ
         t1 = Tasktory('T', 1); t1.deadline = 100; t1.start = 100;
-        t1.end = 100; t1.time = 100; t1.status = Tasktory.OPEN
+        t1.end = 100; t1.timetable = [(1, 100)]; t1.status = Tasktory.OPEN
         t11 = Tasktory('T1', 1); t11.deadline = 110; t11.start = 110;
-        t11.end = 110; t11.time = 110; t11.status = Tasktory.OPEN
+        t11.end = 110; t11.timetable = [(1, 110)]; t11.status = Tasktory.OPEN
         t12 = Tasktory('T2', 1); t12.deadline = 120; t12.start = 120;
-        t12.end = 120; t12.time = 120; t12.status = Tasktory.OPEN
+        t12.end = 120; t12.timetable = [(1, 120)]; t12.status = Tasktory.OPEN
         t121 = Tasktory('T21', 1); t121.deadline = 121; t121.start = 121;
-        t121.end = 121; t121.time = 121; t121.status = Tasktory.OPEN
+        t121.end = 121; t121.timetable = [(1, 121)]; t121.status = Tasktory.OPEN
         t2 = Tasktory('T', 2); t2.deadline = 200; t2.start = 200;
-        t2.end = 200; t2.time = 200; t2.status = Tasktory.WAIT
+        t2.end = 200; t2.timetable = [(1, 200)]; t2.status = Tasktory.WAIT
         t22 = Tasktory('T2', 2); t22.deadline = 220; t22.start = 220;
-        t22.end = 220; t22.time = 220; t22.status = Tasktory.WAIT
+        t22.end = 220; t22.timetable = [(1, 220)]; t22.status = Tasktory.WAIT
         t221 = Tasktory('T21', 2); t221.deadline = 221; t221.start = 221;
-        t221.end = 221; t221.time = 221; t221.status = Tasktory.WAIT
+        t221.end = 221; t221.timetable = [(1, 221)]; t221.status = Tasktory.WAIT
         t23 = Tasktory('T3', 2); t23.deadline = 230; t23.start = 230;
-        t23.end = 230; t23.time = 230; t23.status = Tasktory.WAIT
+        t23.end = 230; t23.timetable = [(1, 230)]; t23.status = Tasktory.WAIT
 
         t1.append(t11)
         t1.append(t12)
@@ -314,6 +315,11 @@ class TestTasktory(unittest.TestCase):
     #==========================================================================
     # タスクトリメソッド
     #==========================================================================
+    def test_get_path(self):
+        t1 = Tasktory('T1', 1)
+        self.assertEqual(t1.get_path(), '/T1')
+        pass
+
     def test_get_last_timestamp(self):
         task0 = Tasktory('task0', 1)
         task1 = Tasktory('task1', 2)
@@ -326,23 +332,25 @@ class TestTasktory(unittest.TestCase):
         self.assertEqual(task1.get_last_timestamp(), 4)
         self.assertEqual(task2.get_last_timestamp(), 3)
 
-    def test_add_time(self):
-        t = Tasktory('hoge', 1)
-        self.check(t, 'hoge', 1, None, None, None, 0, None, 0, Tasktory.OPEN)
-        t.add_time(10)
-        self.check(t, 'hoge', 1, None, 1, None, 10, None, 0, Tasktory.OPEN)
-        t.add_time(20)
-        self.check(t, 'hoge', 1, None, 1, None, 30, None, 0, Tasktory.OPEN)
-    
+    def test_get_time(self):
+        task = Tasktory('T', 1)
+        self.assertEqual(task.get_time(), 0)
+        task.add_time(1, 10)
+        self.assertEqual(task.get_time(), 10)
+        task.add_time(1, 10)
+        self.assertEqual(task.get_time(), 20)
+        task.timetable = [(1,10)]
+        self.assertEqual(task.get_time(), 10)
+
     def test_get_total_time(self):
         task0 = Tasktory('task0', 1)
         task1 = Tasktory('task1', 2)
         task2 = Tasktory('task2', 3)
         task3 = Tasktory('task3', 4)
-        task0.add_time(1000)
-        task1.add_time(2)
-        task2.add_time(30)
-        task3.add_time(400)
+        task0.add_time(1, 1000)
+        task1.add_time(2, 2)
+        task2.add_time(3, 30)
+        task3.add_time(4, 400)
         task0.append(task1)
         task0.append(task2)
         task1.append(task3)
@@ -350,6 +358,14 @@ class TestTasktory(unittest.TestCase):
         self.assertEqual(task1.get_total_time(), 402)
         self.assertEqual(task2.get_total_time(), 30)
         self.assertEqual(task3.get_total_time(), 400)
+
+    def test_add_time(self):
+        t = Tasktory('hoge', 1)
+        self.check(t, 'hoge', 1, None, None, None, 0, None, 0, Tasktory.OPEN)
+        t.add_time(1, 10)
+        self.check(t, 'hoge', 1, None, 1, None, 10, None, 0, Tasktory.OPEN)
+        t.add_time(2, 20)
+        self.check(t, 'hoge', 1, None, 1, None, 30, None, 0, Tasktory.OPEN)
 
     def test_append(self):
         t0 = Tasktory('task0', 1)
@@ -363,6 +379,26 @@ class TestTasktory(unittest.TestCase):
         self.check(t0, 'task0', 1, None, None, None, 0, None, 2, Tasktory.OPEN)
         self.check(t1, 'task1', 1, None, None, None, 0, t0, 0, Tasktory.OPEN)
         self.check(t2, 'task2', 1, None, None, None, 0, t0, 0, Tasktory.OPEN)
+
+    def test_is_open(self):
+        t = Tasktory('hoge', 1)
+        self.assertEqual(t.is_open(), True)
+        self.assertEqual(t.is_wait(), False)
+        self.assertEqual(t.is_close(), False)
+
+    def test_is_wait(self):
+        t = Tasktory('hoge', 1)
+        t.wait()
+        self.assertEqual(t.is_open(), False)
+        self.assertEqual(t.is_wait(), True)
+        self.assertEqual(t.is_close(), False)
+
+    def test_is_close(self):
+        t = Tasktory('hoge', 1)
+        t.close()
+        self.assertEqual(t.is_open(), False)
+        self.assertEqual(t.is_wait(), False)
+        self.assertEqual(t.is_close(), True)
 
     def test_open(self):
         # CLOSE -> OPEN
@@ -406,26 +442,6 @@ class TestTasktory(unittest.TestCase):
         self.check(t, 'hoge', 1, None, None, None, 0, None, 0, Tasktory.WAIT)
         t.close()
         self.check(t, 'hoge', 1, None, 1, 1, 0, None, 0, Tasktory.CLOSE)
-
-    def test_is_open(self):
-        t = Tasktory('hoge', 1)
-        self.assertEqual(t.is_open(), True)
-        self.assertEqual(t.is_wait(), False)
-        self.assertEqual(t.is_close(), False)
-
-    def test_is_wait(self):
-        t = Tasktory('hoge', 1)
-        t.wait()
-        self.assertEqual(t.is_open(), False)
-        self.assertEqual(t.is_wait(), True)
-        self.assertEqual(t.is_close(), False)
-
-    def test_is_close(self):
-        t = Tasktory('hoge', 1)
-        t.close()
-        self.assertEqual(t.is_open(), False)
-        self.assertEqual(t.is_wait(), False)
-        self.assertEqual(t.is_close(), True)
 
     def test_get_level(self):
         task0 = Tasktory('task0', 1)

@@ -1,3 +1,5 @@
+# -*- encoding:utf-8 -*-
+
 def arch(param, par_type):
     """変数の型をまとめて判定する
     arch((1, 'hoge', True, [10, 20], [0, 'fuga']), (int, str, bool, [int, int], list)) -> True
@@ -29,24 +31,22 @@ def arch(param, par_type):
     else:
         return isinstance(param, par_type)
 
-def rexec(obj, exec_func, exec_cond_func=lambda x:True, rec_cond_func=lambda x: True):
+def rexec(node, exec_func, iter_func=iter,
+        exec_cond_func=lambda n:True, rec_cond_func=lambda n:True):
+    """ツリー構造のオブジェクトに対して再起的に処理を行う
     """
-    """
-    # 実行条件関数が真なら実行する
-    if exec_cond_func(obj):
-        exec_func(obj)
+    # 実行条件関数の結果が真なら、関数を実行する
+    if exec_cond_func(node):
+        exec_func(node)
 
-    # 再帰条件関数が偽なら終了する
-    if not rec_cond_func(obj):
+    # 再起条件関数の結果が偽なら、終了する
+    if not rec_cond_func(node):
         return
 
-    # objが有効なイテレータではないなら終了する
-    if not '__iter__' in dir(obj) or isinstance(obj, str):
-        return
+    # 子ノードに再起的に適用する
+    for c in iter_func(node):
+        rexec(c, exec_func, iter_func, exec_cond_func, rec_cond_func)
 
-    # objをイテレータと見なして、再帰する
-    for child in obj:
-        rexec(child, exec_func, exec_cond_func, rec_cond_func)
     return
 
 class ClassProperty(property):
