@@ -77,8 +77,7 @@ class Manager:
         """タスクツリーをファイルシステムに書き込む
         """
         task_dir = put(node, parent_dir)
-        for n in node:
-            put_tree(n, task_dir)
+        for n in node: put_tree(n, task_dir)
 
     @staticmethod
     def commit(node, parent_dir):
