@@ -63,10 +63,12 @@ class Manager:
         dirs = [p for p in os.listdir(task_dir) if os.path.isdir(p)]
 
         # 子タスクトリを復元し、子に加える
-        for d in dirs:
-            child = get_tree(d, task_dir)
-            if child is None: continue
-            task.append(child)
+        #for d in dirs:
+            #child = get_tree(d, task_dir)
+            #if child is None: continue
+            #task.append(child)
+        children = [get_tree(d, task_dir) for d in dirs]
+        [task.append(c) for c in children if not c is None]
 
         return task
 
