@@ -31,13 +31,13 @@ class TestTasktory(unittest.TestCase):
     # コンストラクタ
     #==========================================================================
     def test_init(self):
-        t = Tasktory('', 0)
+        t = Tasktory(1, '', 0)
         self.check(t, '', 0, None, None, None, 0, None, 0, Tasktory.OPEN)
 
-        t = Tasktory('task0', 1)
+        t = Tasktory(1, 'task0', 1)
         self.check(t, 'task0', 1, None, None, None, 0, None, 0, Tasktory.OPEN)
 
-        t = Tasktory('タスク', 1)
+        t = Tasktory(1, 'タスク', 1)
         self.check(t, 'タスク', 1, None, None, None, 0, None, 0, Tasktory.OPEN)
 
     #==========================================================================
@@ -59,58 +59,62 @@ class TestTasktory(unittest.TestCase):
         pass
 
     def test_eq(self):
-        t0 = Tasktory('', 0)
-        t1 = Tasktory('', 1)
-        t2 = Tasktory('hoge', 2)
-        t3 = Tasktory('hoge', 3)
-        t4 = Tasktory('1234', 4)
-        t5 = Tasktory('タスク', 5)
+        t0 = Tasktory(1, '', 0)
+        t1 = Tasktory(1, '', 0)
+        t2 = Tasktory(1, 'hoge', 1)
+        t3 = Tasktory(2, '', 0)
+        t4 = Tasktory(3, 'hoge', 0)
+        t5 = Tasktory(4, '1234', 0)
+        t6 = Tasktory(5, 'タスク', 0)
 
         self.assertEqual(t0 == None, False)
-        self.assertEqual(t0 == 1, False)
+        self.assertEqual(t0 == 1, True)
+        self.assertEqual(t0 == 2, False)
         self.assertEqual(t0 == '', True)
         self.assertEqual(t0 == 'hoge', False)
-        self.assertEqual(t0 == t0, True)
         self.assertEqual(t0 == t1, True)
-        self.assertEqual(t0 == t2, False)
+        self.assertEqual(t0 == t2, True)
+        self.assertEqual(t0 == t3, False)
 
         self.assertEqual(t2 == None, False)
-        self.assertEqual(t2 == 1, False)
+        self.assertEqual(t2 == 1, True)
+        self.assertEqual(t2 == 2, False)
         self.assertEqual(t2 == '', False)
         self.assertEqual(t2 == 'hoge', True)
-        self.assertEqual(t2 == t0, False)
-        self.assertEqual(t2 == t2, True)
-        self.assertEqual(t2 == t3, True)
+        self.assertEqual(t2 == t0, True)
+        self.assertEqual(t2 == t4, False)
 
-        self.assertEqual(t4 == 1234, False)
-        self.assertEqual(t5 == 'タスク', True)
+        self.assertEqual(t5 == '1234', True)
+        self.assertEqual(t6 == 'タスク', True)
 
     def test_ne(self):
-        t0 = Tasktory('', 0)
-        t1 = Tasktory('', 1)
-        t2 = Tasktory('hoge', 2)
-        t3 = Tasktory('hoge', 3)
-        t4 = Tasktory('1234', 4)
-        t5 = Tasktory('タスク', 5)
+        t0 = Tasktory(1, '', 0)
+        t1 = Tasktory(1, '', 0)
+        t2 = Tasktory(1, 'hoge', 1)
+        t3 = Tasktory(2, '', 0)
+        t4 = Tasktory(3, 'hoge', 0)
+        t5 = Tasktory(4, '1234', 0)
+        t6 = Tasktory(5, 'タスク', 0)
 
         self.assertEqual(t0 != None, True)
-        self.assertEqual(t0 != 1, True)
+        self.assertEqual(t0 != 1, False)
+        self.assertEqual(t0 != 2, True)
         self.assertEqual(t0 != '', False)
         self.assertEqual(t0 != 'hoge', True)
-        self.assertEqual(t0 != t0, False)
         self.assertEqual(t0 != t1, False)
-        self.assertEqual(t0 != t2, True)
+        self.assertEqual(t0 != t2, False)
+        self.assertEqual(t0 != t3, True)
 
         self.assertEqual(t2 != None, True)
-        self.assertEqual(t2 != 1, True)
+        self.assertEqual(t2 != 1, False)
+        self.assertEqual(t2 != 2, True)
         self.assertEqual(t2 != '', True)
         self.assertEqual(t2 != 'hoge', False)
-        self.assertEqual(t2 != t0, True)
-        self.assertEqual(t2 != t2, False)
-        self.assertEqual(t2 != t3, False)
+        self.assertEqual(t2 != t0, False)
+        self.assertEqual(t2 != t4, True)
 
-        self.assertEqual(t4 != 1234, True)
-        self.assertEqual(t5 != 'タスク', False)
+        self.assertEqual(t5 != '1234', False)
+        self.assertEqual(t6 != 'タスク', False)
 
     def test_gt(self):
         pass
@@ -119,9 +123,9 @@ class TestTasktory(unittest.TestCase):
         pass
 
     def test_bool(self):
-        t1 = Tasktory('', 0)
-        t2 = Tasktory('hoge', 1)
-        t3 = Tasktory('タスク', 2)
+        t1 = Tasktory(1, '', 0)
+        t2 = Tasktory(2, 'hoge', 1)
+        t3 = Tasktory(3, 'タスク', 2)
 
         self.assertEqual(bool(t1), True)
         self.assertEqual(bool(t2), True)
@@ -131,13 +135,13 @@ class TestTasktory(unittest.TestCase):
     # コンテナエミュレート
     #==========================================================================
     def test_len(self):
-        t = Tasktory('', 0)
+        t = Tasktory(1, '', 0)
         self.assertEqual(len(t), 0)
 
-        t.children.append(Tasktory('c0', 0))
+        t.children.append(Tasktory(2, 'c0', 0))
         self.assertEqual(len(t), 1)
 
-        t.children.append(Tasktory('c1', 1))
+        t.children.append(Tasktory(3, 'c1', 1))
         self.assertEqual(len(t), 2)
 
         t.children.append(1)
@@ -147,10 +151,10 @@ class TestTasktory(unittest.TestCase):
         self.assertEqual(len(t), 4)
 
     def test_getitem(self):
-        task0 = Tasktory('task0', 1)
-        task1 = Tasktory('task1', 2)
-        task2 = Tasktory('task2', 3)
-        task3 = Tasktory('task3', 4)
+        task0 = Tasktory(1, 'task0', 1)
+        task1 = Tasktory(2, 'task1', 2)
+        task2 = Tasktory(3, 'task2', 3)
+        task3 = Tasktory(4, 'task3', 4)
         task0.append(task1)
         task0.append(task2)
         task0.append(task3)
@@ -173,29 +177,33 @@ class TestTasktory(unittest.TestCase):
         pass
 
     def test_iter(self):
-        task0 = Tasktory('task0', 1)
-        task1 = Tasktory('task1', 2)
-        task2 = Tasktory('task2', 3)
-        task3 = Tasktory('task3', 5)
+        task0 = Tasktory(1, 'task0', 1)
+        task1 = Tasktory(2, 'task1', 2)
+        task2 = Tasktory(3, 'task2', 3)
+        task3 = Tasktory(5, 'task3', 5)
         task0.append(task1)
         task0.append(task2)
         task1.append(task3)
         for i,t in enumerate(task0):
+            self.assertEqual(t.ID, i+2)
             self.assertEqual(t.name, 'task{0}'.format(i+1))
             self.assertEqual(t.timestamp, i+2)
 
     def test_contains(self):
-        task0 = Tasktory('task0', 1)
-        task1 = Tasktory('task1', 2)
-        task2 = Tasktory('task2', 3)
-        task3 = Tasktory('task3', 4)
+        task0 = Tasktory(10, 'task0', 1)
+        task1 = Tasktory(20, 'task1', 2)
+        task2 = Tasktory(30, 'task2', 3)
+        task3 = Tasktory(40, 'task3', 4)
         task0.append(task1)
         task0.append(task2)
         task1.append(task3)
+        self.assertEqual(20 in task0, True)
         self.assertEqual('task1' in task0, True)
         self.assertEqual(task1 in task0, True)
+        self.assertEqual(30 in task0, True)
         self.assertEqual('task2' in task0, True)
         self.assertEqual(task2 in task0, True)
+        self.assertEqual(40 in task0, False)
         self.assertEqual('task3' in task0, False)
         self.assertEqual(task3 in task0, False)
 
@@ -316,15 +324,16 @@ class TestTasktory(unittest.TestCase):
     # タスクトリメソッド
     #==========================================================================
     def test_get_path(self):
-        t1 = Tasktory('T1', 1)
+        t1 = Tasktory(1, 'T1', 1)
         self.assertEqual(t1.get_path(), '/T1')
+        # TODO
         pass
 
     def test_get_last_timestamp(self):
-        task0 = Tasktory('task0', 1)
-        task1 = Tasktory('task1', 2)
-        task2 = Tasktory('task2', 3)
-        task3 = Tasktory('task3', 4)
+        task0 = Tasktory(1, 'task0', 1)
+        task1 = Tasktory(2, 'task1', 2)
+        task2 = Tasktory(3, 'task2', 3)
+        task3 = Tasktory(4, 'task3', 4)
         task0.append(task1)
         task0.append(task2)
         task1.append(task3)
@@ -333,7 +342,7 @@ class TestTasktory(unittest.TestCase):
         self.assertEqual(task2.get_last_timestamp(), 3)
 
     def test_get_time(self):
-        task = Tasktory('T', 1)
+        task = Tasktory(1, 'T', 1)
         self.assertEqual(task.get_time(), 0)
         task.add_time(1, 10)
         self.assertEqual(task.get_time(), 10)
@@ -343,10 +352,10 @@ class TestTasktory(unittest.TestCase):
         self.assertEqual(task.get_time(), 10)
 
     def test_get_total_time(self):
-        task0 = Tasktory('task0', 1)
-        task1 = Tasktory('task1', 2)
-        task2 = Tasktory('task2', 3)
-        task3 = Tasktory('task3', 4)
+        task0 = Tasktory(1, 'task0', 1)
+        task1 = Tasktory(2, 'task1', 2)
+        task2 = Tasktory(3, 'task2', 3)
+        task3 = Tasktory(4, 'task3', 4)
         task0.add_time(1, 1000)
         task1.add_time(2, 2)
         task2.add_time(3, 30)
@@ -360,7 +369,7 @@ class TestTasktory(unittest.TestCase):
         self.assertEqual(task3.get_total_time(), 400)
 
     def test_add_time(self):
-        t = Tasktory('hoge', 1)
+        t = Tasktory(1, 'hoge', 1)
         self.check(t, 'hoge', 1, None, None, None, 0, None, 0, Tasktory.OPEN)
         t.add_time(1, 10)
         self.check(t, 'hoge', 1, None, 1, None, 10, None, 0, Tasktory.OPEN)
@@ -368,9 +377,9 @@ class TestTasktory(unittest.TestCase):
         self.check(t, 'hoge', 1, None, 1, None, 30, None, 0, Tasktory.OPEN)
 
     def test_append(self):
-        t0 = Tasktory('task0', 1)
-        t1 = Tasktory('task1', 1)
-        t2 = Tasktory('task2', 1)
+        t0 = Tasktory(1, 'task0', 1)
+        t1 = Tasktory(2, 'task1', 1)
+        t2 = Tasktory(3, 'task2', 1)
         self.check(t0, 'task0', 1, None, None, None, 0, None, 0, Tasktory.OPEN)
         self.check(t1, 'task1', 1, None, None, None, 0, None, 0, Tasktory.OPEN)
         self.check(t2, 'task2', 1, None, None, None, 0, None, 0, Tasktory.OPEN)
@@ -381,20 +390,20 @@ class TestTasktory(unittest.TestCase):
         self.check(t2, 'task2', 1, None, None, None, 0, t0, 0, Tasktory.OPEN)
 
     def test_is_open(self):
-        t = Tasktory('hoge', 1)
+        t = Tasktory(1, 'hoge', 1)
         self.assertEqual(t.is_open(), True)
         self.assertEqual(t.is_wait(), False)
         self.assertEqual(t.is_close(), False)
 
     def test_is_wait(self):
-        t = Tasktory('hoge', 1)
+        t = Tasktory(1, 'hoge', 1)
         t.wait()
         self.assertEqual(t.is_open(), False)
         self.assertEqual(t.is_wait(), True)
         self.assertEqual(t.is_close(), False)
 
     def test_is_close(self):
-        t = Tasktory('hoge', 1)
+        t = Tasktory(1, 'hoge', 1)
         t.close()
         self.assertEqual(t.is_open(), False)
         self.assertEqual(t.is_wait(), False)
@@ -402,14 +411,14 @@ class TestTasktory(unittest.TestCase):
 
     def test_open(self):
         # CLOSE -> OPEN
-        t = Tasktory('hoge', 1)
+        t = Tasktory(1, 'hoge', 1)
         t.close()
         self.check(t, 'hoge', 1, None, 1, 1, 0, None, 0, Tasktory.CLOSE)
         t.open()
         self.check(t, 'hoge', 1, None, 1, None, 0, None, 0, Tasktory.OPEN)
 
         # WAIT -> OPEN
-        del t; t = Tasktory('hoge', 1)
+        del t; t = Tasktory(1, 'hoge', 1)
         t.wait()
         self.check(t, 'hoge', 1, None, None, None, 0, None, 0, Tasktory.WAIT)
         t.open()
@@ -417,13 +426,13 @@ class TestTasktory(unittest.TestCase):
 
     def test_wait(self):
         # OPEN -> WAIT
-        t = Tasktory('hoge', 1)
+        t = Tasktory(1, 'hoge', 1)
         self.check(t, 'hoge', 1, None, None, None, 0, None, 0, Tasktory.OPEN)
         t.wait()
         self.check(t, 'hoge', 1, None, None, None, 0, None, 0, Tasktory.WAIT)
 
         # CLOSE -> WAIT
-        del t; t = Tasktory('hoge', 1)
+        del t; t = Tasktory(1, 'hoge', 1)
         t.close()
         self.check(t, 'hoge', 1, None, 1, 1, 0, None, 0, Tasktory.CLOSE)
         t.wait()
@@ -431,23 +440,23 @@ class TestTasktory(unittest.TestCase):
 
     def test_close(self):
         # OPEN -> CLOSE
-        t = Tasktory('hoge', 1)
+        t = Tasktory(1, 'hoge', 1)
         self.check(t, 'hoge', 1, None, None, None, 0, None, 0, Tasktory.OPEN)
         t.close()
         self.check(t, 'hoge', 1, None, 1, 1, 0, None, 0, Tasktory.CLOSE)
 
         # WAIT -> CLOSE
-        del t; t = Tasktory('hoge', 1)
+        del t; t = Tasktory(1, 'hoge', 1)
         t.wait()
         self.check(t, 'hoge', 1, None, None, None, 0, None, 0, Tasktory.WAIT)
         t.close()
         self.check(t, 'hoge', 1, None, 1, 1, 0, None, 0, Tasktory.CLOSE)
 
     def test_get_level(self):
-        task0 = Tasktory('task0', 1)
-        task1 = Tasktory('task1', 2)
-        task2 = Tasktory('task2', 3)
-        task3 = Tasktory('task3', 4)
+        task0 = Tasktory(1, 'task0', 1)
+        task1 = Tasktory(2, 'task1', 2)
+        task2 = Tasktory(3, 'task2', 3)
+        task3 = Tasktory(4, 'task3', 4)
         task0.append(task1)
         task0.append(task2)
         task1.append(task3)
@@ -457,6 +466,7 @@ class TestTasktory(unittest.TestCase):
         self.assertEqual(task3.get_level(), 2)
 
     def test_copy(self):
+        # TODO
         pass
 
 if __name__ == '__main__':
