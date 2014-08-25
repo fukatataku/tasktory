@@ -8,7 +8,10 @@ class Tasktory(object):
     WAIT = 'wait'
     CLOSE = 'close'
 
-    def __init__(self, name, timestamp):
+    def __init__(self, ID, name, timestamp):
+
+        # タスクトリID
+        self.ID = ID
 
         # タスクトリ名（ディレクトリ／フォルダ名に使用できる文字列）
         self.name = name
@@ -61,10 +64,12 @@ class Tasktory(object):
         return True
 
     def __eq__(self, other):
-        if isinstance(other, str):
+        if isinstance(other, int):
+            return self.ID == other
+        elif isinstance(other, str):
             return self.name == other
         elif isinstance(other, Tasktory):
-            return self.name == other.name
+            return self.ID == other.ID
         else:
             return False
 
@@ -87,6 +92,7 @@ class Tasktory(object):
         return len(self.children)
 
     def __getitem__(self, key):
+        # TODO: int -> index or ID?
         if isinstance(key, (int, slice)):
             return self.children[key]
         elif isinstance(key, str):
@@ -107,15 +113,19 @@ class Tasktory(object):
     def __add__(self, other):
         """２つのタスクトリをマージする
         """
-        # タスクトリ名は同じでなければならない
-        if not self.name == other.name:
+        # タスクトリIDは同じでなければならない
+        if not self.ID == other.ID:
             raise ValueError()
+
+        # タスクトリ名は同じでなければならない
+        #if not self.name == other.name:
+        #    raise ValueError()
 
         # self, otherをタイムスタンプの大小関係により再アサインする
         old, new = sorted((self, other), key=lambda c:c.timestamp)
 
         # 新しいタスクトリを作成する
-        ret = Tasktory(self.name, new.timestamp)
+        ret = Tasktory(self.ID, new.name, new.timestamp)
 
         # 期日はタイムスタンプが新しい方を優先する
         ret.deadline = new.deadline if new.deadline else old.deadline
@@ -154,7 +164,7 @@ class Tasktory(object):
                 else root, self.name)
 
     def get_last_timestamp(self):
-        """小タスクを含めた、最新のタイムスタンプを取得する
+        """子タスクを含めた、最新のタイムスタンプを取得する
         """
         return max([self.timestamp] +
                 [c.get_last_timestamp() for c in self.children])
@@ -239,7 +249,7 @@ class Tasktory(object):
     def copy(self):
         """タスクトリのディープコピーを返す
         """
-        task = Tasktory(self.name, self.timestamp)
+        task = Tasktory(self.ID, self.name, self.timestamp)
         task.deadline = self.deadline
         task.start = self.start
         task.end = self.end
