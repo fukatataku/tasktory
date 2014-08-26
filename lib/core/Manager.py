@@ -89,3 +89,27 @@ class Manager:
         task_dir = put(new, parent_dir)
         for n in node:
             commit(n, task_dir)
+    
+    @staticmethod
+    def check(tree):
+        """ツリー全体で作業記録に矛盾等がないかチェックする
+        ・同じ時間の作業が複数ないか
+        ・作業時間に空きが無いか（コアタイムを知っている必要がある）
+        """
+        # 全タスクトリから作業時間を取得する
+        timetable = tree.get_whole_timetable()
+
+        # タイムテーブルを変換する
+        # (開始エポック秒, 作業時間) -> (開始エポック秒, 終了エポック秒)
+        timetable = [(s, s+t) for s,t in timetable]
+
+        # タイムテーブルをソートする
+        timetable = sorted(timetable, key=lambda t:t[0])
+
+        # タイムテーブルにオーバーラップがないか確認する
+        last_time = 0
+        for t in timetable:
+            if t[0] < last_time: return False
+            last_time = t[1]
+
+        return True

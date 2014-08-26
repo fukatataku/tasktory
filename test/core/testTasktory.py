@@ -368,6 +368,10 @@ class TestTasktory(unittest.TestCase):
         self.assertEqual(task2.get_total_time(), 30)
         self.assertEqual(task3.get_total_time(), 400)
 
+    def test_get_whole_timetable(self):
+        # TODO
+        pass
+
     def test_add_time(self):
         t = Tasktory(1, 'hoge', 1)
         self.check(t, 'hoge', 1, None, None, None, 0, None, 0, Tasktory.OPEN)
@@ -466,6 +470,10 @@ class TestTasktory(unittest.TestCase):
         self.assertEqual(task3.get_level(), 2)
 
     def test_copy(self):
+        # TODO
+        pass
+
+    def test_search(self):
         # TODO
         pass
 
