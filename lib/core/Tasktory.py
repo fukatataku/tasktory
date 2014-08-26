@@ -273,6 +273,6 @@ class Tasktory(object):
         if self.ID == ID: return self
         for c in self.children:
             task = c.search(ID)
-            if not task is None:
+            if task is not None:
                 return task
         return None
