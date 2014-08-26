@@ -212,82 +212,82 @@ class TestTasktory(unittest.TestCase):
     #==========================================================================
     def test_add(self):
         # タスク名／タイムスタンプ
-        t1 = Tasktory('hoge', 1)
-        t2 = Tasktory('hoge', 2)
+        t1 = Tasktory(1, 'hoge', 1)
+        t2 = Tasktory(1, 'hoge', 2)
         self.check(t1+t1,'hoge',1,None,None,None,0,None,0,Tasktory.OPEN)
         self.check(t1+t2,'hoge',2,None,None,None,0,None,0,Tasktory.OPEN)
         self.check(t2+t1,'hoge',2,None,None,None,0,None,0,Tasktory.OPEN)
         self.check(t2+t2,'hoge',2,None,None,None,0,None,0,Tasktory.OPEN)
 
         # 期日／開始日／終了日／作業時間／ステータス
-        t10 = Tasktory('hoge', 1)
-        t11 = Tasktory('hoge', 1); t11.deadline = 10; t11.start = 100
+        t10 = Tasktory(2, 'hoge', 1)
+        t11 = Tasktory(2, 'hoge', 1); t11.deadline = 10; t11.start = 100
         t11.end = 101; t11.timetable = [(1, 120)]; t11.status = Tasktory.WAIT
-        t12 = Tasktory('hoge', 1); t12.deadline = 20; t12.start = 200
+        t12 = Tasktory(2, 'fuga', 1); t12.deadline = 20; t12.start = 200
         t12.end = 202; t12.timetable = [(1, 210)]; t12.status = Tasktory.CLOSE
-        t20 = Tasktory('hoge', 2)
-        t21 = Tasktory('hoge', 2); t21.deadline = 10; t21.start = 100
+        t20 = Tasktory(2, 'hoge', 2)
+        t21 = Tasktory(2, 'hoge', 2); t21.deadline = 10; t21.start = 100
         t21.end = 101; t21.timetable = [(1, 120)]; t21.status = Tasktory.WAIT
-        t22 = Tasktory('hoge', 2); t22.deadline = 20; t22.start = 200
+        t22 = Tasktory(2, 'fuga', 2); t22.deadline = 20; t22.start = 200
         t22.end = 202; t22.timetable = [(1, 210)]; t22.status = Tasktory.CLOSE
         self.check(t10+t10,'hoge',1,None,None,None,0,None,0,Tasktory.OPEN)
         self.check(t10+t11,'hoge',1,10,100,101,120,None,0,Tasktory.WAIT)
-        self.check(t10+t12,'hoge',1,20,200,202,210,None,0,Tasktory.CLOSE)
+        self.check(t10+t12,'fuga',1,20,200,202,210,None,0,Tasktory.CLOSE)
         self.check(t10+t20,'hoge',2,None,None,None,0,None,0,Tasktory.OPEN)
         self.check(t10+t21,'hoge',2,10,100,101,120,None,0,Tasktory.WAIT)
-        self.check(t10+t22,'hoge',2,20,200,202,210,None,0,Tasktory.CLOSE)
+        self.check(t10+t22,'fuga',2,20,200,202,210,None,0,Tasktory.CLOSE)
 
         self.check(t11+t10,'hoge',1,10,100,None,120,None,0,Tasktory.OPEN)
         self.check(t11+t11,'hoge',1,10,100,101,240,None,0,Tasktory.WAIT)
-        self.check(t11+t12,'hoge',1,20,100,202,330,None,0,Tasktory.CLOSE)
+        self.check(t11+t12,'fuga',1,20,100,202,330,None,0,Tasktory.CLOSE)
         self.check(t11+t20,'hoge',2,10,100,None,120,None,0,Tasktory.OPEN)
         self.check(t11+t21,'hoge',2,10,100,101,240,None,0,Tasktory.WAIT)
-        self.check(t11+t22,'hoge',2,20,100,202,330,None,0,Tasktory.CLOSE)
+        self.check(t11+t22,'fuga',2,20,100,202,330,None,0,Tasktory.CLOSE)
 
         self.check(t12+t10,'hoge',1,20,200,None,210,None,0,Tasktory.OPEN)
         self.check(t12+t11,'hoge',1,10,200,101,330,None,0,Tasktory.WAIT)
-        self.check(t12+t12,'hoge',1,20,200,202,420,None,0,Tasktory.CLOSE)
+        self.check(t12+t12,'fuga',1,20,200,202,420,None,0,Tasktory.CLOSE)
         self.check(t12+t20,'hoge',2,20,200,None,210,None,0,Tasktory.OPEN)
         self.check(t12+t21,'hoge',2,10,200,101,330,None,0,Tasktory.WAIT)
-        self.check(t12+t22,'hoge',2,20,200,202,420,None,0,Tasktory.CLOSE)
+        self.check(t12+t22,'fuga',2,20,200,202,420,None,0,Tasktory.CLOSE)
 
         self.check(t20+t10,'hoge',2,None,None,None,0,None,0,Tasktory.OPEN)
         self.check(t20+t11,'hoge',2,10,100,None,120,None,0,Tasktory.OPEN)
         self.check(t20+t12,'hoge',2,20,200,None,210,None,0,Tasktory.OPEN)
         self.check(t20+t20,'hoge',2,None,None,None,0,None,0,Tasktory.OPEN)
         self.check(t20+t21,'hoge',2,10,100,101,120,None,0,Tasktory.WAIT)
-        self.check(t20+t22,'hoge',2,20,200,202,210,None,0,Tasktory.CLOSE)
+        self.check(t20+t22,'fuga',2,20,200,202,210,None,0,Tasktory.CLOSE)
 
         self.check(t21+t10,'hoge',2,10,100,101,120,None,0,Tasktory.WAIT)
         self.check(t21+t11,'hoge',2,10,100,101,240,None,0,Tasktory.WAIT)
         self.check(t21+t12,'hoge',2,10,200,101,330,None,0,Tasktory.WAIT)
         self.check(t21+t20,'hoge',2,10,100,None,120,None,0,Tasktory.OPEN)
         self.check(t21+t21,'hoge',2,10,100,101,240,None,0,Tasktory.WAIT)
-        self.check(t21+t22,'hoge',2,20,100,202,330,None,0,Tasktory.CLOSE)
+        self.check(t21+t22,'fuga',2,20,100,202,330,None,0,Tasktory.CLOSE)
 
-        self.check(t22+t10,'hoge',2,20,200,202,210,None,0,Tasktory.CLOSE)
-        self.check(t22+t11,'hoge',2,20,100,202,330,None,0,Tasktory.CLOSE)
-        self.check(t22+t12,'hoge',2,20,200,202,420,None,0,Tasktory.CLOSE)
+        self.check(t22+t10,'fuga',2,20,200,202,210,None,0,Tasktory.CLOSE)
+        self.check(t22+t11,'fuga',2,20,100,202,330,None,0,Tasktory.CLOSE)
+        self.check(t22+t12,'fuga',2,20,200,202,420,None,0,Tasktory.CLOSE)
         self.check(t22+t20,'hoge',2,20,200,None,210,None,0,Tasktory.OPEN)
         self.check(t22+t21,'hoge',2,10,200,101,330,None,0,Tasktory.WAIT)
-        self.check(t22+t22,'hoge',2,20,200,202,420,None,0,Tasktory.CLOSE)
+        self.check(t22+t22,'fuga',2,20,200,202,420,None,0,Tasktory.CLOSE)
 
         # 親／子タスクトリ
-        t1 = Tasktory('T', 1); t1.deadline = 100; t1.start = 100;
+        t1 = Tasktory(3, 'T', 1); t1.deadline = 100; t1.start = 100;
         t1.end = 100; t1.timetable = [(1, 100)]; t1.status = Tasktory.OPEN
-        t11 = Tasktory('T1', 1); t11.deadline = 110; t11.start = 110;
+        t11 = Tasktory(4, 'T1', 1); t11.deadline = 110; t11.start = 110;
         t11.end = 110; t11.timetable = [(1, 110)]; t11.status = Tasktory.OPEN
-        t12 = Tasktory('T2', 1); t12.deadline = 120; t12.start = 120;
+        t12 = Tasktory(5, 'T2', 1); t12.deadline = 120; t12.start = 120;
         t12.end = 120; t12.timetable = [(1, 120)]; t12.status = Tasktory.OPEN
-        t121 = Tasktory('T21', 1); t121.deadline = 121; t121.start = 121;
+        t121 = Tasktory(6, 'T21', 1); t121.deadline = 121; t121.start = 121;
         t121.end = 121; t121.timetable = [(1, 121)]; t121.status = Tasktory.OPEN
-        t2 = Tasktory('T', 2); t2.deadline = 200; t2.start = 200;
+        t2 = Tasktory(3, 'T', 2); t2.deadline = 200; t2.start = 200;
         t2.end = 200; t2.timetable = [(1, 200)]; t2.status = Tasktory.WAIT
-        t22 = Tasktory('T2', 2); t22.deadline = 220; t22.start = 220;
+        t22 = Tasktory(5, 'T2', 2); t22.deadline = 220; t22.start = 220;
         t22.end = 220; t22.timetable = [(1, 220)]; t22.status = Tasktory.WAIT
-        t221 = Tasktory('T21', 2); t221.deadline = 221; t221.start = 221;
+        t221 = Tasktory(6, 'T21', 2); t221.deadline = 221; t221.start = 221;
         t221.end = 221; t221.timetable = [(1, 221)]; t221.status = Tasktory.WAIT
-        t23 = Tasktory('T3', 2); t23.deadline = 230; t23.start = 230;
+        t23 = Tasktory(7, 'T3', 2); t23.deadline = 230; t23.start = 230;
         t23.end = 230; t23.timetable = [(1, 230)]; t23.status = Tasktory.WAIT
 
         t1.append(t11)
@@ -315,8 +315,8 @@ class TestTasktory(unittest.TestCase):
         self.check(t3['T3'],'T3',2,230,230,230,230,t3,0,Tasktory.WAIT)
 
         # コメント
-        t1 = Tasktory('T', 1); t1.comments = "コメント"
-        t2 = Tasktory('T', 2); t2.comments = "あいうえお"
+        t1 = Tasktory(8, 'T', 1); t1.comments = "コメント"
+        t2 = Tasktory(8, 'T', 2); t2.comments = "あいうえお"
         t3 = t1 + t2
         self.assertEqual(t3.comments, "あいうえお")
 
@@ -369,7 +369,36 @@ class TestTasktory(unittest.TestCase):
         self.assertEqual(task3.get_total_time(), 400)
 
     def test_get_whole_timetable(self):
-        # TODO
+        t1 = Tasktory(1, 'T1', 1)
+        self.assertSequenceEqual(t1.get_whole_timetable(), [])
+        t1.add_time(1000, 1)
+        self.assertSequenceEqual(t1.get_whole_timetable(), [(1000, 1)])
+        t1.add_time(1100, 2)
+        self.assertSequenceEqual(t1.get_whole_timetable(),
+                [(1000, 1), (1100, 2)])
+
+        t11 = Tasktory(2, 'T11', 1)
+        t11.add_time(1200, 3)
+        t11.add_time(1300, 4)
+        t1.append(t11)
+        self.assertSequenceEqual(t1.get_whole_timetable(),
+                [(1000, 1), (1100, 2), (1200, 3), (1300, 4)])
+
+        t12 = Tasktory(2, 'T12', 1)
+        t12.add_time(1400, 5)
+        t1.append(t12)
+        self.assertSequenceEqual(t1.get_whole_timetable(),
+                [(1000, 1), (1100, 2), (1200, 3), (1300, 4), (1400, 5)])
+
+        t111 = Tasktory(2, 'T111', 1)
+        t111.add_time(1500, 6)
+        t11.append(t111)
+        self.assertSequenceEqual(sorted(t1.get_whole_timetable()),
+                [(1000, 1), (1100, 2), (1200, 3), (1300, 4), (1400, 5),
+                    (1500, 6)])
+
+        self.assertSequenceEqual(sorted(t11.get_whole_timetable()),
+                [(1200, 3), (1300, 4), (1500, 6)])
         pass
 
     def test_add_time(self):
@@ -474,8 +503,21 @@ class TestTasktory(unittest.TestCase):
         pass
 
     def test_search(self):
-        # TODO
-        pass
+        t0 = Tasktory(0, 'T0', 1)
+        self.assertIs(t0, t0.search(0))
+        self.assertIsNone(t0.search(1))
+        t01 = Tasktory(1, 'T01', 1); t0.append(t01)
+        self.assertIs(t0, t0.search(0))
+        self.assertIs(t01, t0.search(1))
+        self.assertIsNone(t0.search(2))
+        self.assertIs(t01, t01.search(1))
+        self.assertIsNone(t01.search(0))
+        t02 = Tasktory(2, 'T02', 1); t0.append(t02)
+        t001 = Tasktory(3, 'T001', 1); t01.append(t001)
+        t0001 = Tasktory(4, 'T0001', 1); t001.append(t0001)
+        self.assertIs(t02, t0.search(2))
+        self.assertIs(t001, t0.search(3))
+        self.assertIs(t0001, t0.search(4))
 
 if __name__ == '__main__':
     print(datetime.datetime.now())
