@@ -1,10 +1,62 @@
 # -*- encoding:utf-8 -*-
 
 import os, pickle
+from Tasktory import Tasktory
+
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class Manager:
 
+    # 各タスクトリのデータを格納するファイル
     PROFILE_NAME = '.tasktory'
+
+    # 最大ID値を保持するファイル $TASKTORY/data/$USERNAME/maxid
+    HOME_DIR = os.path.abspath(os.path.join(THIS_DIR, "..", ".."))
+    DATA_DIR_NAME = "data"
+    USERNAME = os.environ["USERNAME"]
+    MAXID_FILE_NAME = "maxid"
+    MAXID_FILE = os.path.join(HOME_DIR, DATA_DIR_NAME,
+            USERNAME, MAXID_FILE_NAME)
+
+    @staticmethod
+    def tasktory(name, timestamp):
+        """Tasktory作成を仲介し、通し番号（ID）を管理する
+        """
+        # 現在の最大のID値をファイルから取得する
+        if os.path.isfile(MAXID_FILE):
+            with open(MAXID_FILE, 'r') as f:
+                maxid = int(f.read())
+        else:
+            maxid = 0
+
+        # タスクトリを作成する
+        task = Tasktory(maxid, name, timestamp)
+
+        # 最大IDを更新してファイルに保存する
+        with open(MAXID_FILE, 'w') as f:
+            maxid += 1
+            f.write(str(maxid))
+
+        return task
+
+    @staticmethod
+    def is_tasktory(path):
+        """指定したパスがタスクトリかどうかを判定する
+        """
+        profile_path = os.path.join(path, PROFILE_NAME)
+        return os.path.isfile(profile_path)
+
+    @staticmethod
+    def listtask(path):
+        """指定したパスに含まれるタスクトリのパスのリストを取得する
+        """
+        # パスに含まれるディレクトリパスのリストを取得する
+        paths = [os.path.join(path, p) for p in os.listdir(path)]
+
+        # ディレクトリの内、タスクトリのみを取り出す
+        paths = [t for t in tasks if is_tasktory(t)]
+
+        return paths
 
     @staticmethod
     def get(task_name, parent_dir):
@@ -27,6 +79,27 @@ class Manager:
         return task
 
     @staticmethod
+    def get_v2(path):
+        """指定されたパスをタスクトリとみなして変換する。
+        タスクトリでなければNoneを返す。親子の解決はしない。
+        """
+        # プロファイルパスを作成する
+        profile_path = os.path.join(path, PROFILE_NAME)
+
+        # プロファイルが無ければNoneを返す
+        if not os.path.isfile(profile_path):
+            return None
+
+        # プロファイルからタスクトリを復元する
+        with open(profile_path, 'r') as profile:
+            task = pickle.load(profile)
+
+        # タスクトリ名を復元する
+        task.name = os.path.basename(path)
+
+        return task
+
+    @staticmethod
     def put(task, parent_dir):
         """単一のタスクトリをファイルシステムに変換して保存する
         """
@@ -36,7 +109,7 @@ class Manager:
         # タスクトリ名を基にディレクトリを作る
         task_dir = os.path.join(parent_dir, tmp_task.name)
         tmp_task.name = None
-        ps.makedirs(path)
+        os.makedirs(path)
 
         # 親タスクトリと子タスクトリのデータを削除する
         tmp_task.parent = None
@@ -51,6 +124,29 @@ class Manager:
         return task_dir
 
     @staticmethod
+    def put_v2(task, path):
+        """単一のタスクトリをファイルシステムに変換して保存する
+        """
+        # タスクトリのコピーを作成する
+        tmp_task = task.copy()
+
+        # ディレクトリを作成する
+        os.makedirs(path)
+
+        # タスクトリから不要なデータを削除する
+        tmp_task.parent = None
+        tmp_task.children = None
+
+        # プロファイルのパスを作成する
+        profile_path = os.path.join(path, PROFILE_NAME)
+
+        # タスクトリのデータをプロファイルに保存する
+        with open(profile_path, 'w') as profile:
+            pickle.dump(tmp_task, profile)
+
+        del tmp_task
+
+    @staticmethod
     def get_tree(task_name, parent_dir):
         """タスクトリの実体であるファイルシステムからタスクトリツリーを取得する
         """
@@ -63,14 +159,26 @@ class Manager:
         dirs = [p for p in os.listdir(task_dir) if os.path.isdir(p)]
 
         # 子タスクトリを復元し、子に加える
-        #for d in dirs:
-            #child = get_tree(d, task_dir)
-            #if child is None: continue
-            #task.append(child)
         children = [get_tree(d, task_dir) for d in dirs]
         [task.append(c) for c in children if not c is None]
 
         return task
+
+    @staticmethod
+    def get_tree_v2(path):
+        """指定したパス以下のタスクトリツリーを取得する
+        """
+        # タスクトリを復元する
+        task = get_v2(path)
+        if task is None: return None
+
+        # タスクトリに含まれるタスクトリ一覧を取得する
+
+    @staticmethod
+    def get_subtree(tree, parent_dir):
+        """引数treeに含まれるタスクトリのみをファイルしてすむから取得する
+        """
+        pass
 
     @staticmethod
     def put_tree(node, parent_dir):
@@ -84,26 +192,22 @@ class Manager:
         """引数として渡したタスクトリツリーをファイルシステムに反映する
         作業時間の整合性などもチェックし、不正な場合はエラーを出す
         """
-        org = get(node.name, parent_dir)
-        new = org + node
-        task_dir = put(new, parent_dir)
-        for n in node:
-            commit(n, task_dir)
-    
+        pass
+
     @staticmethod
     def check(tree):
         """ツリー全体で作業記録に矛盾等がないかチェックする
         ・同じ時間の作業が複数ないか
         ・作業時間に空きが無いか（コアタイムを知っている必要がある）
         """
-        # 全タスクトリから作業時間を取得する
+        # 全タスクトリからタイムテーブルを取得する
         timetable = tree.get_whole_timetable()
 
         # タイムテーブルを変換する
         # (開始エポック秒, 作業時間) -> (開始エポック秒, 終了エポック秒)
         timetable = [(s, s+t) for s,t in timetable]
 
-        # タイムテーブルをソートする
+        # タイムテーブルを開始エポック秒でソートする
         timetable = sorted(timetable, key=lambda t:t[0])
 
         # タイムテーブルにオーバーラップがないか確認する
