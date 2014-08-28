@@ -42,19 +42,20 @@ class Manager:
     @staticmethod
     def is_tasktory(path):
         """指定したパスがタスクトリかどうかを判定する
+        ".profile"という名前のファイルを含んでいるかどうかで判定する
         """
         profile_path = os.path.join(path, PROFILE_NAME)
         return os.path.isfile(profile_path)
 
     @staticmethod
-    def listtask(path):
+    def list_tasktory(path):
         """指定したパスに含まれるタスクトリのパスのリストを取得する
         """
         # パスに含まれるディレクトリパスのリストを取得する
         paths = [os.path.join(path, p) for p in os.listdir(path)]
 
         # ディレクトリの内、タスクトリのみを取り出す
-        paths = [t for t in tasks if is_tasktory(t)]
+        paths = [t for t in paths if is_tasktory(t)]
 
         return paths
 
@@ -80,7 +81,7 @@ class Manager:
 
     @staticmethod
     def get_v2(path):
-        """指定されたパスをタスクトリとみなして変換する。
+        """指定されたパスのタスクトリを取得する。
         タスクトリでなければNoneを返す。親子の解決はしない。
         """
         # プロファイルパスを作成する
@@ -100,8 +101,17 @@ class Manager:
         return task
 
     @staticmethod
+    def get_v3(path, ID=None):
+        """
+        タスクトリ名変更に対応したgetメソッド
+        ・親ディレクトリからIDで検索
+        ・pathから親ディレクトリを生成してID>basenameの順で検索
+        """
+        pass
+
+    @staticmethod
     def put(task, parent_dir):
-        """単一のタスクトリをファイルシステムに変換して保存する
+        """単一のタスクトリを保存する
         """
         # タスクトリのコピーを作成する
         tmp_task = task.copy()
@@ -125,7 +135,7 @@ class Manager:
 
     @staticmethod
     def put_v2(task, path):
-        """単一のタスクトリをファイルシステムに変換して保存する
+        """単一のタスクトリを保存する
         """
         # タスクトリのコピーを作成する
         tmp_task = task.copy()
@@ -166,19 +176,51 @@ class Manager:
 
     @staticmethod
     def get_tree_v2(path):
-        """指定したパス以下のタスクトリツリーを取得する
+        """指定したパスのタスクトリツリーを取得する
         """
         # タスクトリを復元する
         task = get_v2(path)
         if task is None: return None
 
-        # タスクトリに含まれるタスクトリ一覧を取得する
+        # タスクトリに含まれるタスクトリパス一覧を取得する
+        subpaths = list_tasktory(os.path.join(path, task.name))
+
+        # サブタスクトリを復元する
+        children = [get_tree_v2(p) for p in subpaths]
+        [task.append(c) for c in children if c is not None]
+
+        return task
 
     @staticmethod
-    def get_subtree(tree, parent_dir):
-        """引数treeに含まれるタスクトリのみをファイルしてすむから取得する
+    def get_subtree(path, tree):
+        """指定したパスのタスクトリツリーを取得する
+        ただし、引数treeに含まれないタスクは取得しない
         """
-        pass
+        # タスクトリを復元する
+        if tree.name != os.path.basename(path): return None
+        task = get_v2(path)
+        if task is None: return None
+
+        # タスクトリに含まれるタスクトリパス一覧を取得する
+        subpaths = list_tasktory(os.path.join(path, task.name))
+        subpaths = [p for p in subpaths if os.path.basename(p) in tree]
+
+        # サブタスクトリを復元する
+        children = [get_tree_v2(p) for p in subpaths]
+        [task.append(c) for c in children if c is not None]
+
+        return task
+
+    @staticmethod
+    def get_subtree_v2(path, tree):
+        """指定したパスのタスクトリツリーを取得する
+        ただし、引数Treeに含まれないタスクトリは取得しない
+        タスクトリの同定にはIDを使用する
+        """
+        # タスクトリを復元する
+        task = get_v2(path)
+
+        # タスクトリが取得できないか、できてもIDが違う場合
 
     @staticmethod
     def put_tree(node, parent_dir):
