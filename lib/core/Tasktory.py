@@ -159,9 +159,17 @@ class Tasktory(object):
     #==========================================================================
     # タスクトリメソッド
     #==========================================================================
-    def get_path(self, root='/'):
+    #def get_path(self, root='/'):
+        #"""タスクトリのフルパスを返す
+        #"""
+        #return os.path.join(self.parent.get_path(root) if self.parent
+                #else root, self.name)
+
+    def get_path(self, root='/', namefunc=lambda t:t.name):
+        """タスクトリのフルパスを返す
+        """
         return os.path.join(self.parent.get_path(root) if self.parent
-                else root, self.name)
+                else root, namefunc(self))
 
     def get_last_timestamp(self):
         """子タスクを含めた、最新のタイムスタンプを取得する
