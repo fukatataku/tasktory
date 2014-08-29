@@ -324,8 +324,26 @@ class TestTasktory(unittest.TestCase):
     # タスクトリメソッド
     #==========================================================================
     def test_get_path(self):
+        def name(task):
+            return "{ID}.{NAME}".format(ID=task.ID, NAME=task.name)
         t1 = Tasktory(1, 'T1', 1)
         self.assertEqual(t1.get_path(), '/T1')
+        self.assertEqual(t1.get_path('/', name), '/1.T1')
+
+        t11 = Tasktory(2, 'T11', 1)
+        t1.append(t11)
+        self.assertEqual(t1.get_path(), '/T1')
+        self.assertEqual(t11.get_path(), os.path.join('/T1', 'T11'))
+        self.assertEqual(t11.get_path('/', name),
+                os.path.join('/1.T1', '2.T11'))
+
+        t111 = Tasktory(3, 'あいうえお', 1)
+        t11.append(t111)
+        self.assertEqual(t111.get_path(),
+                os.path.join('/T1', 'T11', 'あいうえお'))
+        self.assertEqual(t111.get_path('/', name),
+                os.path.join('/1.T1', '2.T11', '3.あいうえお'))
+
         # TODO
         pass
 
