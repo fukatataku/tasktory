@@ -1,6 +1,6 @@
 # -*- encoding:utf-8 -*-
 
-import sys, os, pickle
+import sys, os, pickle, glob
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 COMMON_DIR = os.path.abspath(os.path.join(THIS_DIR, '..', 'common'))
@@ -47,12 +47,12 @@ class Manager:
         """
         return DIR_NAME_TMPL.substitute({'ID': task.ID, 'NAME': task.name})
 
-    @staticmethod
-    def taskname(path):
-        """パスからタスクトリ名を取得する
-        """
-        dirname = os.path.basename(path)
-        return DIR_NAME_TMPL.parse(dirname)['NAME']
+    #@staticmethod
+    #def taskname(path):
+    #    """パスからタスクトリ名を取得する
+    #    """
+    #    dirname = os.path.basename(path)
+    #    return DIR_NAME_TMPL.parse(dirname)['NAME']
 
     @staticmethod
     def is_tasktory(path):
@@ -113,17 +113,9 @@ class Manager:
 
         # サブタスクトリを復元する
         children = [get_tree(p) for p in list_tasktory(path)]
-        [task.append(c) for c in children]
+        [task.append(c) for c in children if c is not None]
 
         return task
-
-    @staticmethod
-    def get_subtree(path, tree):
-        """指定したパス以下のタスクトリツリーを取得する
-        ただし、引数treeに含まれないタスクトリは除外する
-        本メソッドはタスクトリパス変更の影響が解決されている事を前提とする
-        """
-        return
 
     @staticmethod
     def put_tree(tree, root):
@@ -140,6 +132,9 @@ class Manager:
     @staticmethod
     def solve(tree, root):
         """タスクトリパス変更を解決する
+        ポーリングまたはOSのイベントトリガによって起動する
+        ジャーナルから作成されたタスクトリをファイルシステムに反映する
+        ファイルシステムから作成、移動、削除されたタスクトリをジャーナルに
         """
         pass
 

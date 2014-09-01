@@ -49,19 +49,21 @@ class Tasktory(object):
     # 文字列表現
     #==========================================================================
     def __repr__(self):
-        return
+        return self.name
 
     def __str__(self):
-        return
+        return self.name
 
     #==========================================================================
     # 比較／テスト
     #==========================================================================
     def __lt__(self, other):
-        return True
+        """タイムスタンプの大小に基づいて比較する
+        """
+        return self.timestamp < other.timestamp
 
     def __le__(self, other):
-        return True
+        return self.timestamp <= other.timestamp
 
     def __eq__(self, other):
         if isinstance(other, int):
@@ -77,10 +79,10 @@ class Tasktory(object):
         return not self.__eq__(other)
 
     def __gt__(self, other):
-        return True
+        return self.timestamp > other.timestamp
 
     def __ge__(self, other):
-        return True
+        return self.timestamp >= other.timestamp
 
     def __bool__(self):
         return True
@@ -92,7 +94,8 @@ class Tasktory(object):
         return len(self.children)
 
     def __getitem__(self, key):
-        # TODO: int -> index or ID?
+        # TODO: int -> IDでツリー検索
+        # TODO: str -> nameでツリー検索
         if isinstance(key, (int, slice)):
             return self.children[key]
         elif isinstance(key, str):
@@ -100,17 +103,27 @@ class Tasktory(object):
         else:
             raise TypeError()
 
+    #def __iter__(self):
+    #    for child in self.children:
+    #        yield child
+
     def __iter__(self):
-        for child in self.children:
-            yield child
+        """自身に含まれる全タスクトリを直列に並べリスト化して返す
+        """
+        ret = [self]
+        for s in [c.__iret__() for c in self.children]: ret += s
+        return ret
 
     def __contains__(self, item):
+        # TODO: 直接の子だけではなく、全子孫を検索する
         return item in self.children
 
     #==========================================================================
     # 数値型エミュレート
     #==========================================================================
     def __add__(self, other):
+        # TODO: mergeに移行
+        # TODO: ツリーに依存しないように
         """２つのタスクトリをマージする
         """
         # タスクトリIDは同じでなければならない
@@ -278,3 +291,8 @@ class Tasktory(object):
             if task is not None:
                 return task
         return None
+
+    def merge(self, other):
+        """単一のタスクトリをマージする
+        """
+        return
