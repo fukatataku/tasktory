@@ -130,19 +130,6 @@ class Manager:
         [put_tree(c, root) for c in tree]
 
     @staticmethod
-    def solve(tree, root):
-        """タスクトリパス変更を解決する
-        ポーリングまたはOSのイベントトリガによって起動する
-        ジャーナルから作成されたタスクトリをファイルシステムに反映する
-        ファイルシステムから作成、移動、削除されたタスクトリをジャーナルに
-        """
-        pass
-
-    @staticmethod
-    def commit(tree, root):
-        pass
-
-    @staticmethod
     def check(tree):
         # treeのタイムテーブルを取得する
         timetable = tree.get_whole_timetable()

@@ -166,8 +166,9 @@ class Tasktory(object):
         # 終了日はタイムスタンプが新しい方を使用する
         ret.end = new.end
 
-        # 作業時間は結合する。重複の解決はここではしない
+        # 作業時間は結合する。
         ret.timetable = [(s,t) for s,t in old.timetable + new.timetable]
+        # TODO: 重複の解決をどこでするか決める
 
         # ステータスはタイムスタンプが新しい方を使用する
         ret.status = new.status
