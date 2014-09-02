@@ -1,5 +1,15 @@
 # -*- encoding:utf-8 -*-
 
+import os
+
+THIS_DIR = os.path.dirname(os.path.absname(__file__))
+HOME_DIR = os.path.abspath(os.path.join(THIS_DIR, '..', '..'))
+CONF_DIR = os.path.join(HOME_DIR, 'conf')
+TMPL_DIR = os.path.join(HOME_DIR, 'template')
+
+JOURNAL_CONF_FILE = os.path.join(CONF_DIR, 'journal.conf')
+JOURNAL_TMPL_FILE = os.path.join(TMPL_DIR, 'journal.tmpl')
+
 def arch(param, par_type):
     """変数の型をまとめて判定する
     arch((1, 'hoge', True, [10, 20], [0, 'fuga']), (int, str, bool, [int, int], list)) -> True
