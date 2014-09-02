@@ -91,48 +91,65 @@ class Tasktory(object):
     # コンテナエミュレート
     #==========================================================================
     def __len__(self):
-        return len(self.children)
+        """ツリー内の全ノード数を返す
+        """
+        return 1 + sum([c.__len__() for c in self.children])
 
     def __getitem__(self, key):
-        # TODO: int -> IDでツリー検索
-        # TODO: str -> nameでツリー検索
-        if isinstance(key, (int, slice)):
-            return self.children[key]
+        """IDまたはタスクトリ名でツリー内検索を行う
+        """
+        if isinstance(key, int):
+            test = self.ID == key
         elif isinstance(key, str):
-            return [c for c in self.children if c.name == key][0]
+            test = self.name == key
+        elif isinstance(key, Tasktory):
+            test = self.ID == key.ID
         else:
             raise TypeError()
 
-    #def __iter__(self):
-    #    for child in self.children:
-    #        yield child
+        if test: return self
+        for c in self.children:
+            task = c.__getitem__(key)
+            if task: return task
+        raise IndexError()
+
+    def __setitem__(self, key, value):
+        """IDまたはタスクトリ名でツリー内のノードを指定し、valueに置き換える
+        本メソッドは上書きが目的であり、新規に追加する場合はappendを使うこと
+        """
+        self[key].jack(value)
 
     def __iter__(self):
         """自身に含まれる全タスクトリを直列に並べリスト化して返す
         """
         ret = [self]
-        for s in [c.__iret__() for c in self.children]: ret += s
+        for s in [c.__iter__() for c in self.children]: ret += s
         return ret
 
     def __contains__(self, item):
-        # TODO: 直接の子だけではなく、全子孫を検索する
-        return item in self.children
+        """タスクツリー内にitemが含まれるか調べる
+        """
+        if isinstance(item, int):
+            test = self.ID == item
+        elif isinstance(item, str):
+            test = self.name == item
+        elif isinstance(item, Tasktory):
+            test = self.ID == item.ID
+        else:
+            raise TypeError()
+
+        if test: return True
+        return any([item in c for c in self.children])
 
     #==========================================================================
     # 数値型エミュレート
     #==========================================================================
     def __add__(self, other):
-        # TODO: mergeに移行
-        # TODO: ツリーに依存しないように
         """２つのタスクトリをマージする
         """
         # タスクトリIDは同じでなければならない
         if not self.ID == other.ID:
             raise ValueError()
-
-        # タスクトリ名は同じでなければならない
-        #if not self.name == other.name:
-        #    raise ValueError()
 
         # self, otherをタイムスタンプの大小関係により再アサインする
         old, new = sorted((self, other), key=lambda c:c.timestamp)
@@ -155,8 +172,8 @@ class Tasktory(object):
         # ステータスはタイムスタンプが新しい方を使用する
         ret.status = new.status
 
-        # 親タスクトリは同じはずなので、どっちでも良い
-        ret.parent = self.parent if self.parent else other.parent
+        # 親タスクトリは新しい方を優先する
+        ret.parent = new.parent if new.parent else old.parent
 
         # 子タスクトリリスト
         _ = new.children + old.children
@@ -170,7 +187,7 @@ class Tasktory(object):
         return ret
 
     #==========================================================================
-    # タスクトリメソッド
+    # タスクトリデータ参照メソッド
     #==========================================================================
     def get_path(self, root='/', namefunc=lambda t:t.name):
         """タスクトリのフルパスを返す
@@ -201,6 +218,24 @@ class Tasktory(object):
         return self.timetable +\
                 sum([c.get_whole_timetable() for c in self.children], [])
 
+    def is_open(self):
+        """ステータスがOPENならTrueを返す
+        """
+        return self.status == Tasktory.OPEN
+
+    def is_wait(self):
+        """ステータスがWAITならTrueを返す
+        """
+        return self.status == Tasktory.WAIT
+
+    def is_close(self):
+        """ステータスがCLOSEならTrueを返す
+        """
+        return self.status == Tasktory.CLOSE
+
+    #==========================================================================
+    # タスクトリデータ変更メソッド
+    #==========================================================================
     def add_time(self, start, sec):
         """作業時間を追加する
         初めて作業時間が追加された場合は開始日が記録される
@@ -219,21 +254,6 @@ class Tasktory(object):
         self.children.append(child)
         child.parent = self
         return self
-
-    def is_open(self):
-        """ステータスがOPENならTrueを返す
-        """
-        return self.status == Tasktory.OPEN
-
-    def is_wait(self):
-        """ステータスがWAITならTrueを返す
-        """
-        return self.status == Tasktory.WAIT
-
-    def is_close(self):
-        """ステータスがCLOSEならTrueを返す
-        """
-        return self.status == Tasktory.CLOSE
 
     def open(self):
         """タスクトリを作業中にする
@@ -262,6 +282,28 @@ class Tasktory(object):
         self.end = self.timestamp
         return self
 
+    #==========================================================================
+    # 抽象データ参照メソッド
+    #==========================================================================
+    def get(self, key, default=None):
+        """タスクトリツリーからタスクトリを検索して返す
+        """
+        if isinstance(key, int):
+            test = self.ID == key
+        elif isinstance(key, str):
+            test = self.name == key
+        elif isinstance(key, Tasktory):
+            test = self.ID == key.ID
+        else:
+            raise TypeError()
+
+        if test: return self
+        for c in self.children:
+            task = c.get(key, default)
+            if task: return task
+
+        return default
+
     def get_level(self):
         """タスクトリの階層を返す
         """
@@ -281,18 +323,46 @@ class Tasktory(object):
         task.comments = self.comments
         return task
 
-    def search(self, ID):
-        """指定したIDを子タスクトリから再帰的に探して返す
-        存在しなければNoneを返す
+    #==========================================================================
+    # 抽象データ変更メソッド
+    #==========================================================================
+    def commit(self, delta):
+        """タスクツリーに差分を含むタスクをコミットする
+        selfはタスクツリー、deltaは単一のタスクである事を想定している
+        該当するタスクが見つからない場合はFalseを返す
         """
-        if self.ID == ID: return self
-        for c in self.children:
-            task = c.search(ID)
-            if task is not None:
-                return task
-        return None
+        # taskはTasktoryでなければならない
+        if not isinstance(task, Tasktory): raise TypeError()
 
-    def merge(self, other):
-        """単一のタスクトリをマージする
+        # 該当するタスクを探す
+        task = self.get(delta.ID)
+        if task is None: return False
+
+        # 差分をマージしたタスクを作成する
+        new_task = task + delta
+
+        # マージしたタスクで上書きする
+        self[new_task.ID] = new_task
+
+        return True
+
+    def jack(self, other):
+        """selfのデータをotherのもので上書きする
         """
+        # otherはTasktoryでなければならない
+        if not isinstance(other, Tasktory): raise TypeError()
+
+        # IDは同一でなければならない
+        if self.ID != other.ID: raise ValueError()
+
+        self.name = other.name
+        self.timestamp = other.timestamp
+        self.deadline = other.deadline
+        self.start = other.start
+        self.end = other.end
+        self.timetable = [(s,t) for s,t in other.timetable]
+        self.status = other.status
+        self.parent = other.parent
+        self.children = [c for c in other.children]
+        self.comments = other.comments
         return
