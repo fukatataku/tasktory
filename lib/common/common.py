@@ -2,48 +2,24 @@
 
 import os
 
-THIS_DIR = os.path.dirname(os.path.absname(__file__))
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 HOME_DIR = os.path.abspath(os.path.join(THIS_DIR, '..', '..'))
 CONF_DIR = os.path.join(HOME_DIR, 'conf')
+DATA_DIR = os.path.join(HOME_DIR, 'data', os.environ['USERNAME'])
 TMPL_DIR = os.path.join(HOME_DIR, 'template')
 
 JOURNAL_CONF_FILE = os.path.join(CONF_DIR, 'journal.conf')
 JOURNAL_TMPL_FILE = os.path.join(TMPL_DIR, 'journal.tmpl')
 
-def arch(param, par_type):
-    """変数の型をまとめて判定する
-    arch((1, 'hoge', True, [10, 20], [0, 'fuga']), (int, str, bool, [int, int], list)) -> True
-    arch((1, 2, 3), (int, str, int)) -> False
-    arch(1, int) -> True
-    arch(None, None) -> True
-    """
-    # par_type に許されるのは type, list, tuple, Noneのみ
-    if not isinstance(par_type, (type, list, tuple, type(None))):
-        raise TypeError("無効な型が指定されました")
-
-    # List of type OR tuple of type
-    elif isinstance(par_type, (list, tuple)):
-        if not type(param) == type(par_type):
-            return False
-        if not len(param) == len(par_type):
-            return False
-
-        rets = [check_arch(p, par_type[i]) for i,p in enumerate(param)]
-        if [r for r in rets if not r]:
-            return False
-        else:
-            return True
-
-    # NoneTypeはNoneで指定可能
-    elif par_type == None:
-        return True if param == None else False
-
-    else:
-        return isinstance(param, par_type)
-
-def rexec(node, exec_func, iter_func=iter,
-        exec_cond_func=lambda n:True, rec_cond_func=lambda n:True):
+def rexec(node, exec_func, iter_func=iter, iter_sort_func=None,
+        exec_cond_func=lambda n:True, rec_cond_func=lambda n:0):
     """ツリー構造のオブジェクトに対して再起的に処理を行う
+    node - ツリー構造のオブジェクト
+    exec_func - 引数nodeを受け取る任意の処理を行う関数
+    iter_func - 引数nodeを受け取って子ノードへのイテレータを返す関数
+    iter_sort_func - 子ノードリストをソートする際のsortedのkey
+    exec_cond_func - 引数nodeを受け取ってexec_funcを実行するか判定する関数
+    rec_cond_func - 引数nodeを受け取って子ノードの再帰実行をするか判定する関数
     """
     # 実行条件関数の結果が真なら、関数を実行する
     if exec_cond_func(node):
@@ -54,32 +30,7 @@ def rexec(node, exec_func, iter_func=iter,
         return
 
     # 子ノードに再起的に適用する
-    for c in iter_func(node):
+    for c in sorted(iter_func(node), key=lambda n:iter_sort_func(n)):
         rexec(c, exec_func, iter_func, exec_cond_func, rec_cond_func)
 
     return
-
-class ClassProperty(property):
-    """propertyデコレータのクラス変数版
-    class Foo(metaclass=PropertyMeta):
-        __bar = None
-
-        @ClassProperty
-        def bar(self):
-            return self.__bar
-
-        @bar.setter
-        def bar(self, value)
-            self.__bar = value
-    """
-    pass
-
-class PropertyMeta(type):
-    """クラスプロパティデコレータ実装のためのメタクラス
-    """
-    def __new__(cls, name, bases, namespace):
-        props = [(k,v) for k,v in namespace.items() if type(v) == ClassProperty]
-        for k, v in props:
-            setattr(cls, k, v)
-            del namespace[k]
-        return type.__new__(cls, name, bases, namespace)

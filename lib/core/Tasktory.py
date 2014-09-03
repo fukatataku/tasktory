@@ -190,12 +190,6 @@ class Tasktory(object):
     #==========================================================================
     # タスクトリデータ参照メソッド
     #==========================================================================
-    def get_path(self, root='/', namefunc=lambda t:t.name):
-        """タスクトリのフルパスを返す
-        """
-        return os.path.join(self.parent.get_path(root, namefunc) if self.parent
-                else root, namefunc(self))
-
     def get_last_timestamp(self):
         """子タスクを含めた、最新のタイムスタンプを取得する
         """
@@ -304,6 +298,12 @@ class Tasktory(object):
             if task: return task
 
         return default
+
+    def get_path(self, root='/', namefunc=lambda t:t.name):
+        """タスクトリのフルパスを返す
+        """
+        return os.path.join(self.parent.get_path(root, namefunc) if self.parent
+                else root, namefunc(self))
 
     def get_level(self):
         """タスクトリの階層を返す

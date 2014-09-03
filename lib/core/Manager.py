@@ -1,20 +1,21 @@
 # -*- encoding:utf-8 -*-
 
-import sys, os, pickle, glob
-
+import sys, os
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 COMMON_DIR = os.path.abspath(os.path.join(THIS_DIR, '..', 'common'))
 sys.path.append(COMMON_DIR)
 
+import pickle, glob
+
 from Tasktory import Tasktory
 from RWTemplate import RWTemplate
+from common import DATA_DIR
 
 class Manager:
 
-    HOME_DIR = os.path.abspath(os.path.join(THIS_DIR, '..', '..'))
-    DATA_DIR = os.path.join(HOME_DIR, 'data', os.environ['USERNAME'])
     MAX_ID_FILE = os.path.join(DATA_DIR, 'max_id')
 
+    # TODO: ディレクトリ名テンプレートは設定ファイルから持ってくる
     DIR_NAME_TMPL = RWTemplate('%ID.%NAME')
 
     PROFILE_NAME = '.tasktory'
