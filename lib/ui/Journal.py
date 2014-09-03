@@ -41,7 +41,8 @@ class Journal:
         return
 
     @staticmethod
-    def tasktory(taskline, term_tmpl, term_delim, taskline_tmpl):
+    def tasktory(taskline, term_tmpl, term_delim, taskline_tmpl,
+            timestamp, status):
         """タスクラインからタスクトリを生成する
         人間による記述が含まれるので、柔軟に読み取る
         """
@@ -50,6 +51,9 @@ class Journal:
         # それでもダメならエラー
         try:
             obj = taskline_tmpl.parse(taskline)
+            name = os.path.basename(obj['PATH'])
+            task = Tasktory(obj['ID'], name, timestamp)
+             # TODO: ステータス設定
         except Exception:
             pass
 
