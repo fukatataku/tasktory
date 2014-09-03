@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 #-*- encoding:utf-8 -*-
 
-import sys, os
-import datetime
-import unittest
+import sys, os, datetime, unittest
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-append_path = lambda p:sys.path.append(os.path.join(THIS_DIR, p))
-append_path('../../lib/core')
+HOME_DIR = os.path.abspath(os.path.join(THIS_DIR, '..', '..'))
+sys.path.append(HOME_DIR)
 
-from Tasktory import Tasktory
-from Manager import Manager
+from lib.core.Tasktory import Tasktory
+from lib.core.Manager import Manager
 
 class TestTasktory(unittest.TestCase):
 

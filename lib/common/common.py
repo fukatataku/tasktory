@@ -9,7 +9,8 @@ DATA_DIR = os.path.join(HOME_DIR, 'data', os.environ['USERNAME'])
 TMPL_DIR = os.path.join(HOME_DIR, 'template')
 
 JOURNAL_CONF_FILE = os.path.join(CONF_DIR, 'journal.conf')
-JOURNAL_TMPL_FILE = os.path.join(TMPL_DIR, 'journal.tmpl')
+JOURNAL_READ_TMPL_FILE = os.path.join(TMPL_DIR, 'journal.read.tmpl')
+JOURNAL_WRITE_TMPL_FILE = os.path.join(TMPL_DIR, 'journal.write.tmpl')
 
 def rexec(node, exec_func, iter_func=iter, iter_sort_func=None,
         exec_cond_func=lambda n:True, rec_cond_func=lambda n:0):

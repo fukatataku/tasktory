@@ -1,15 +1,10 @@
 # -*- encoding:utf-8 -*-
 
-import sys, os
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-COMMON_DIR = os.path.abspath(os.path.join(THIS_DIR, '..', 'common'))
-sys.path.append(COMMON_DIR)
+import os, pickle, glob
 
-import pickle, glob
-
-from Tasktory import Tasktory
-from RWTemplate import RWTemplate
-from common import DATA_DIR
+from lib.core.Tasktory import Tasktory
+from lib.common.RWTemplate import RWTemplate
+from lib.common.common import DATA_DIR
 
 class Manager:
 

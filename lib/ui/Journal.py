@@ -1,18 +1,13 @@
 #!C:/python/python3.4/python
 # -*- encoding:utf-8 -*-
 
-import sys, os
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-COMMON_DIR = os.path.abspath(os.path.join(THIS_DIR, '..', 'common'))
-sys.path.append(COMMON_DIR)
+import os, configparser, time, datetime
 
-import configparser
-import datetime
-import time
-
-from RWTemplate import RWTemplate
-from common import JOURNAL_CONF_FILE, JOURNAL_TMPL_FILE
-from common import rexec
+from lib.core.Tasktory import Tasktory
+from lib.common.RWTemplate import RWTemplate
+from lib.common.common import rexec
+from lib.common.common import JOURNAL_CONF_FILE
+from lib.common.common import JOURNAL_READ_TMPL_FILE, JOURNAL_WRITE_TMPL_FILE
 
 class Journal:
 
@@ -23,7 +18,43 @@ class Journal:
         """
         # テンプレートを取得する
         term_tmpl, term_delim, taskline_tmpl = read_config('ReadTemplate')
+        with open(JOURNAL_READ_TMPL_FILE, 'r', encoding='utf-8') as f:
+            journal_tmpl = f.read()
+
+        # ジャーナルをパースする
+        obj = journal_tmpl.parse(journal)
+
+        # タイムスタンプ
+        year = int(obj['YEAR'])
+        month = int(obj['MONTH'])
+        day = int(obj['DAY'])
+        timestamp = datetime.date(year, month, day).toordinal()
+
+        # タスクライン
+        tasks = lambda obj:[o for o in obj.split('\n') if o != '']
+        open_tasklines = tasks(obj['OPENTASKS'])
+        wait_tasklines = tasks(obj['WAITTASKS'])
+        close_tasklines = tasks(obj['CLOSETASKS'])
+
+        # 各タスクラインをタスクトリに変換する
+
         return
+
+    @staticmethod
+    def tasktory(taskline, term_tmpl, term_delim, taskline_tmpl):
+        """タスクラインからタスクトリを生成する
+        人間による記述が含まれるので、柔軟に読み取る
+        """
+        # まずテンプレート通りに読み込んでみる
+        # 読み込めない場合は自由記述モードでの読み込む
+        # それでもダメならエラー
+        try:
+            obj = taskline_tmpl.parse(taskline)
+        except Exception:
+            pass
+
+        # 自由記述モード
+        # IDがない場合は新規作成
 
     @staticmethod
     def journal(tasktory, memo=None):
@@ -31,11 +62,10 @@ class Journal:
         """
         # テンプレートを取得する
         term_tmpl, term_delim, taskline_tmpl = read_config('WriteTemplate')
+        with open(JOURNAL_WRITE_TMPL_FILE, 'r', encoding='utf-8') as f:
+            journal_tmpl = RWTemplate(f.read())
 
         # TODO: TMP_TemplateをTemplateに書き込む
-
-        with open(JOURNAL_CONF_FILE, 'r', encoding='utf-8') as f:
-            journal_tmpl = f.read()
 
         # 日付
         today = datetime.date.today()
@@ -81,9 +111,9 @@ class Journal:
         # テンプレートにデータを埋め込む
         journal = journal_tmpl.substitute({
             'YEAR': today.year, 'MONTH': today.month, 'DAY': today.day,
-            'OPEN': 'Todo', 'OPENTASKS': tasks[Tasktory.OPEN],
-            'WAIT': 'Wait', 'WAITTASKS': tasks[Tasktory.WAIT],
-            'CLOSE': 'Done', 'CLOSETASKS': tasks[Tasktory.CLOSE],
+            'OPENTASKS': tasks[Tasktory.OPEN],
+            'WAITTASKS': tasks[Tasktory.WAIT],
+            'CLOSETASKS': tasks[Tasktory.CLOSE],
             'MEMO': '' if memo is None else memo})
 
         return journal
@@ -96,7 +126,7 @@ class Journal:
         config.read(JOURNAL_CONF_FILE)
         section = config[section_name]
         term_tmpl = RWTemplate(section['TERM'])
-        term_delim = section['TERM_DELIMITER'].strip("'")
+        term_delim = section['TERM_DELIMITER']
         taskline_tmpl = RWTemplate(section['TASKLINE'])
         return term_tmpl, term_delim, taskline_tmpl
 
