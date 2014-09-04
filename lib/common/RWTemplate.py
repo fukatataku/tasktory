@@ -1,4 +1,3 @@
-#!C:/python/python3.4/python
 # -*- encoding:utf-8 -*-
 
 import re
