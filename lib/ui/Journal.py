@@ -1,9 +1,10 @@
-#!C:/python/python3.4/python
+#!python3
 # -*- encoding:utf-8 -*-
 
 # テスト用コード
 import sys
-sys.path.append('C:/home/fukata/git/tasktory')
+#sys.path.append('C:/home/fukata/git/tasktory')
+sys.path.append('/Users/taku/git/tasktory')
 
 import os, re, configparser, time, datetime
 
@@ -52,18 +53,72 @@ class Journal:
     @staticmethod
     def tasktory(taskline, config, timestamp, status):
         """タスクラインからタスクトリを生成する
-        人間による記述が含まれるので、柔軟に読み取る
+        テンプレートに沿って読み出す
+        DEADLINEについては以下のルールで読み出す
+        要素が３つあった場合は年月日（2014/4/1）
+        ２つの場合は月日（4/1）
+        １つの場合は残り日数（１）
+        いずれの場合でも変更できるようにする
         """
         (date_tmpl, term_tmpl, term_delim, taskline_tmpl) = config
 
-        try:
-            obj = taskline_tmpl.parse(taskline)
-            print(obj)
-            return
-        except Exception as e:
-            print(e)
-            print("oh")
+        obj = taskline_tmpl.parse(taskline)
+        print(obj)
+        # タスクトリ名を解決する
+        name = os.path.basename(obj['PATH'])
+        print(name)
+
+        # IDを解決する
+        if obj['ID']:
+            # 既存のタスクトリ
             pass
+        else:
+            # 新しいタスクトリを作成する
+            pass
+
+        # 期日を解決する
+        num = re.compile(r'\d+$')
+        match = num.match(obj['DEADLINE'])
+        if match:
+            days = int(match.group())
+            print(days)
+        head = re.compile(r'^(%{?YEAR}?[^a-zA-Z0-9_%{}]+)')
+        tail = re.compile(r'([^a-zA-Z0-9_%{}]+%{?YEAR}?)$')
+        date_reg = head.sub(r'(\1)?', date_tmpl.template)
+        date_reg = tail.sub(r'(\1)?', date_reg)
+        date_reg = RWTemplate(date_reg).substitute({
+            'YEAR': r'(?P<year>(\d{2})?\d{2})',
+            'MONTH': r'(?P<month>\d{1,2})',
+            'DAY': r'(?P<day>\d{1,2})'})
+        date_reg = re.compile(date_reg)
+        match = date_reg.match(obj['DEADLINE'])
+        if match:
+            year = int(match.group('year'))
+            year = year if year is not None else 2014
+            month = int(match.group('month'))
+            day = int(match.group('day'))
+            print(year, month, day)
+
+        # 作業時間を解決する
+        delim = re.compile(r'([^a-zA-Z0-9_%{}]+)')
+        term_reg = delim.sub(r'\s*\1\s*', term_tmpl.template)
+        term_reg= RWTemplate(term_reg).substitute({
+            'SHOUR': r'(?P<shour>\d{1,2})',
+            'SMIN': r'(?P<smin>\d{2})',
+            'EHOUR': r'(?P<ehour>\d{1,2})',
+            'EMIN': r'(?P<emin>\d{2})'})
+        term_reg = re.compile(term_reg)
+        for t in obj['TERMS'].split(term_delim):
+            t = t.strip(' ')
+            match = term_reg.match(t)
+            if match:
+                shour = int(match.group('shour'))
+                smin = int(match.group('smin'))
+                ehour = int(match.group('ehour'))
+                emin = int(match.group('emin'))
+                print(shour, smin, ehour, emin)
+
+        return
 
     @staticmethod
     def stat(task, status):
@@ -202,57 +257,8 @@ class Journal:
         second = total_sec
         return hour, minute, second
 
-    @staticmethod
-    def date_reg(tmpl):
-        """日付テンプレート文字列を受け取ってタスクライン読み込み用の日付正規
-        表現を返す。日付テンプレートは%YEAR,%MONTH,%DAYの３つのホルダーを１つ
-        ずつ持っている必要があり、他のホルダーを持っていてはならない。ホルダー
-        名は{}で囲っても良いが、デリミタに[a-zA-Z0-9_}]を使用してはならない。
-        これはRWTemplateの仕様ではなく本メソッドの仕様である。本メソッドが返す
-        正規表現においてスラッシュ記号'/'は特別な意味を持つ。日付表現のデリミ
-        タはスラッシュを使用しても良いが日付表現のプリフィクスにスラッシュを含
-        んではならない。これはタスクトリのデリミタがスラッシュだからであり、タ
-        スクトリと日付を区別するための制限である。以下に例を示す
-        2014/9/4 -> OK
-        14/9/4   -> OK
-        9/4      -> OK
-        @9/4     -> OK
-        /9/4     -> NG
-        @/@9/4   -> NG
-        """
-        head = re.compile(r'^(%{?YEAR}?.+?)(?=%{?[a-zA-Z_])')
-        tail = re.compile(r'(?<=[a-zA-Z0-9_}])([^a-zA-Z0-9_}]+?%{?YEAR}?)$')
-        tmpl = head.sub(r'(\1)?', tmpl, 1)
-        tmpl = tail.sub(r'(\1)?', tmpl, 1)
-        tmpl = RWTemplate(tmpl)
-        return re.compile(r'(?P<prefix>(^|\s)[^/\s0-9]+)' + tmpl.substitute({
-            'YEAR': r'(?P<year>(\d{2})?\d{2})',
-            'MONTH': r'(?P<month>\d{1,2})', 'DAY': r'(?P<day>\d{1,2})'}))
-
-    @staticmethod
-    def term_reg(tmpl):
-        """作業時間テンプレート文字列を受け取ってタスクライン読み込み用の正規
-        表現を返す
-        """
-        # shour:smin-ehour:emin
-        # shour : smin - ehour : emin
-        # 各デリミタの左右に\s?を差し込む
-        # 各ホルダーを \d{1,2}, \d{2}に変換する
-        # デリミタは{}の有無に関わらず[a-zA-Z0-9_{}%]を含んではならない
-        delim_reg = re.compile(r'([^a-zA-Z0-9_%{}]+)')
-        tmpl = delim_reg.sub(r'\s?\1\s?', tmpl)
-        tmpl = RWTemplate(tmpl)
-        return re.compile(tmpl.substitute({'SHOUR': r'(?P<shour>\d{1,2})',
-            'SMIN': r'(?P<smin>\d{2})',
-            'EHOUR': r'(?P<ehour>\d{1,2})',
-            'EMIN': r'(?P<emin>\d{2})'}))
-
 if __name__ == '__main__':
-    #taskline = '12:/project/task @2014/9/6 [9:00-12:00, 13:00 - 17:45]'
-    #config = Journal.read_config('ReadTemplate')
-    #Journal.tasktory(taskline, config, 1, Tasktory.OPEN)
-    tmpl = RWTemplate('^%YEAR/%MONTH/%DAY$')
-    print(tmpl.const)
-    obj = tmpl.parse('^/09/04$')
-    print(obj)
+    taskline = ':/project/task @2014/9/6 [9:00-12:00, 13:00 - 17:45]'
+    config = Journal.read_config('ReadTemplate')
+    Journal.tasktory(taskline, config, 1, Tasktory.OPEN)
     pass

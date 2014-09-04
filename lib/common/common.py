@@ -2,10 +2,13 @@
 
 import os
 
+# ユーザー名
+user = os.environ.get('USERNAME', os.environ.get('USER', 'unknown'))
+
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 HOME_DIR = os.path.abspath(os.path.join(THIS_DIR, '..', '..'))
 CONF_DIR = os.path.join(HOME_DIR, 'conf')
-DATA_DIR = os.path.join(HOME_DIR, 'data', os.environ['USERNAME'])
+DATA_DIR = os.path.join(HOME_DIR, 'data', user)
 TMPL_DIR = os.path.join(HOME_DIR, 'template')
 
 JOURNAL_CONF_FILE = os.path.join(CONF_DIR, 'journal.conf')
