@@ -1,7 +1,11 @@
 #!C:/python/python3.4/python
 # -*- encoding:utf-8 -*-
 
-import os, configparser, time, datetime
+# テスト用コード
+import sys
+sys.path.append('C:/home/fukata/git/tasktory')
+
+import os, re, configparser, time, datetime
 
 from lib.core.Tasktory import Tasktory
 from lib.common.RWTemplate import RWTemplate
@@ -17,7 +21,7 @@ class Journal:
         メモがあればそれも返す
         """
         # テンプレートを取得する
-        term_tmpl, term_delim, taskline_tmpl = read_config('ReadTemplate')
+        config = read_config('ReadTemplate')
         with open(JOURNAL_READ_TMPL_FILE, 'r', encoding='utf-8') as f:
             journal_tmpl = f.read()
 
@@ -37,35 +41,51 @@ class Journal:
         close_tasklines = tasks(obj['CLOSETASKS'])
 
         # 各タスクラインをタスクトリに変換する
+        tsk = lambda t,s:tasktory(t, config, timestamp, s)
+        open_tasks = [tsk(t, Tasktory.OPEN) for t in open_tasklines]
+        wait_tasks = [tsk(t, Tasktory.WAIT) for t in wait_tasklines]
+        close_tasks = [tsk(t, Tasktory.CLOSE) for t in close_tasklines]
 
-        return
+        # 各タスクリストを結合して返す
+        return open_tasks + wait_tasks + close_tasks
 
     @staticmethod
-    def tasktory(taskline, term_tmpl, term_delim, taskline_tmpl,
-            timestamp, status):
+    def tasktory(taskline, config, timestamp, status):
         """タスクラインからタスクトリを生成する
         人間による記述が含まれるので、柔軟に読み取る
         """
-        # まずテンプレート通りに読み込んでみる
-        # 読み込めない場合は自由記述モードでの読み込む
-        # それでもダメならエラー
+        (date_tmpl, term_tmpl, term_delim, taskline_tmpl) = config
+
         try:
             obj = taskline_tmpl.parse(taskline)
-            name = os.path.basename(obj['PATH'])
-            task = Tasktory(obj['ID'], name, timestamp)
-             # TODO: ステータス設定
-        except Exception:
+            print(obj)
+            return
+        except Exception as e:
+            print(e)
+            print("oh")
             pass
 
-        # 自由記述モード
-        # IDがない場合は新規作成
+    @staticmethod
+    def stat(task, status):
+        """タスクトリのステータスを設定する
+        """
+        if status == Tasktory.OPEN:
+            task.open()
+        elif status == Tasktory.WAIT:
+            task.wait()
+        elif status == Tasktory.CLOSE:
+            task.close()
+        else:
+            raise ValueError()
+        return
 
     @staticmethod
     def journal(tasktory, memo=None):
         """タスクトリからジャーナル用テキストを作成する
         """
         # テンプレートを取得する
-        term_tmpl, term_delim, taskline_tmpl = read_config('WriteTemplate')
+        (date_tmpl, term_tmpl, term_delim,
+                taskline_tmpl) = read_config('WriteTemplate')
         with open(JOURNAL_WRITE_TMPL_FILE, 'r', encoding='utf-8') as f:
             journal_tmpl = RWTemplate(f.read())
 
@@ -127,12 +147,13 @@ class Journal:
         """コンフィグを読み込んで各種テンプレートを読み込む
         """
         config = configparser.ConfigParser()
-        config.read(JOURNAL_CONF_FILE)
+        config.read(JOURNAL_CONF_FILE, encoding='utf-8')
         section = config[section_name]
+        date_tmpl = RWTemplate(section['DATE'])
         term_tmpl = RWTemplate(section['TERM'])
         term_delim = section['TERM_DELIMITER']
         taskline_tmpl = RWTemplate(section['TASKLINE'])
-        return term_tmpl, term_delim, taskline_tmpl
+        return date_tmpl, term_tmpl, term_delim, taskline_tmpl
 
     @staticmethod
     def taskline(node, term_tmpl, term_delim, taskline_tmpl, date):
@@ -181,3 +202,57 @@ class Journal:
         second = total_sec
         return hour, minute, second
 
+    @staticmethod
+    def date_reg(tmpl):
+        """日付テンプレート文字列を受け取ってタスクライン読み込み用の日付正規
+        表現を返す。日付テンプレートは%YEAR,%MONTH,%DAYの３つのホルダーを１つ
+        ずつ持っている必要があり、他のホルダーを持っていてはならない。ホルダー
+        名は{}で囲っても良いが、デリミタに[a-zA-Z0-9_}]を使用してはならない。
+        これはRWTemplateの仕様ではなく本メソッドの仕様である。本メソッドが返す
+        正規表現においてスラッシュ記号'/'は特別な意味を持つ。日付表現のデリミ
+        タはスラッシュを使用しても良いが日付表現のプリフィクスにスラッシュを含
+        んではならない。これはタスクトリのデリミタがスラッシュだからであり、タ
+        スクトリと日付を区別するための制限である。以下に例を示す
+        2014/9/4 -> OK
+        14/9/4   -> OK
+        9/4      -> OK
+        @9/4     -> OK
+        /9/4     -> NG
+        @/@9/4   -> NG
+        """
+        head = re.compile(r'^(%{?YEAR}?.+?)(?=%{?[a-zA-Z_])')
+        tail = re.compile(r'(?<=[a-zA-Z0-9_}])([^a-zA-Z0-9_}]+?%{?YEAR}?)$')
+        tmpl = head.sub(r'(\1)?', tmpl, 1)
+        tmpl = tail.sub(r'(\1)?', tmpl, 1)
+        tmpl = RWTemplate(tmpl)
+        return re.compile(r'(?P<prefix>(^|\s)[^/\s0-9]+)' + tmpl.substitute({
+            'YEAR': r'(?P<year>(\d{2})?\d{2})',
+            'MONTH': r'(?P<month>\d{1,2})', 'DAY': r'(?P<day>\d{1,2})'}))
+
+    @staticmethod
+    def term_reg(tmpl):
+        """作業時間テンプレート文字列を受け取ってタスクライン読み込み用の正規
+        表現を返す
+        """
+        # shour:smin-ehour:emin
+        # shour : smin - ehour : emin
+        # 各デリミタの左右に\s?を差し込む
+        # 各ホルダーを \d{1,2}, \d{2}に変換する
+        # デリミタは{}の有無に関わらず[a-zA-Z0-9_{}%]を含んではならない
+        delim_reg = re.compile(r'([^a-zA-Z0-9_%{}]+)')
+        tmpl = delim_reg.sub(r'\s?\1\s?', tmpl)
+        tmpl = RWTemplate(tmpl)
+        return re.compile(tmpl.substitute({'SHOUR': r'(?P<shour>\d{1,2})',
+            'SMIN': r'(?P<smin>\d{2})',
+            'EHOUR': r'(?P<ehour>\d{1,2})',
+            'EMIN': r'(?P<emin>\d{2})'}))
+
+if __name__ == '__main__':
+    #taskline = '12:/project/task @2014/9/6 [9:00-12:00, 13:00 - 17:45]'
+    #config = Journal.read_config('ReadTemplate')
+    #Journal.tasktory(taskline, config, 1, Tasktory.OPEN)
+    tmpl = RWTemplate('^%YEAR/%MONTH/%DAY$')
+    print(tmpl.const)
+    obj = tmpl.parse('^/09/04$')
+    print(obj)
+    pass
