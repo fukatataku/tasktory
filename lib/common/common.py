@@ -26,15 +26,13 @@ def rexec(node, exec_func, iter_func=iter, iter_sort_func=None,
     rec_cond_func - 引数nodeを受け取って子ノードの再帰実行をするか判定する関数
     """
     # 実行条件関数の結果が真なら、関数を実行する
-    if exec_cond_func(node):
-        exec_func(node)
+    if exec_cond_func(node): exec_func(node)
 
     # 再起条件関数の結果が偽なら、終了する
-    if not rec_cond_func(node):
-        return
+    if not rec_cond_func(node): return
 
     # 子ノードに再起的に適用する
-    for c in sorted(iter_func(node), key=lambda n:iter_sort_func(n)):
+    for c in sorted(iter_func(node), key=iter_sort_func):
         rexec(c, exec_func, iter_func, exec_cond_func, rec_cond_func)
 
     return

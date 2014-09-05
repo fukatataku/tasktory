@@ -7,8 +7,10 @@ class Tasktory(object):
     OPEN = 'open'
     WAIT = 'wait'
     CLOSE = 'close'
+    CONST = 'const'
 
-    def __init__(self, ID, name, timestamp):
+    #def __init__(self, ID, name, datestamp):
+    def __init__(self, ID, name):
 
         # タスクトリID
         self.ID = ID
@@ -16,22 +18,22 @@ class Tasktory(object):
         # タスクトリ名（ディレクトリ／フォルダ名に使用できる文字列）
         self.name = name
 
-        # タイムスタンプ（グレゴリオ序数）
-        self.timestamp = timestamp
+        # デートスタンプ（グレゴリオ序数）
+        #self.datestamp = datestamp
 
         # 期日（グレゴリオ序数）
         self.deadline = None
 
         # 開始日（グレゴリオ序数）
-        self.start = None
+        #self.start = None
 
         # 終了日（グレゴリオ序数）
-        self.end = None
+        #self.end = None
 
         # タイムテーブル（開始エポック秒と作業時間（秒）のタプルのリスト）
         self.timetable = []
 
-        # ステータス（OPEN or WAIT or CLOSE）
+        # ステータス（OPEN or WAIT or CLOSE or CONST）
         self.status = Tasktory.OPEN
 
         # 親タスクトリ
@@ -58,12 +60,14 @@ class Tasktory(object):
     # 比較／テスト
     #==========================================================================
     def __lt__(self, other):
-        """タイムスタンプの大小に基づいて比較する
+        """最新のタイムテーブルの大小に基づいて比較する
         """
-        return self.timestamp < other.timestamp
+        #return self.deadline < other.deadline
+        return self.get_newest_timetable() < other.get_newest_timetable()
 
     def __le__(self, other):
-        return self.timestamp <= other.timestamp
+        #return self.deadline <= other.deadline
+        return self.get_newest_timetable() <= other.get_newest_timetable()
 
     def __eq__(self, other):
         if isinstance(other, int):
@@ -79,10 +83,12 @@ class Tasktory(object):
         return not self.__eq__(other)
 
     def __gt__(self, other):
-        return self.timestamp > other.timestamp
+        #return self.deadline > other.deadline
+        return self.get_newest_timetable() > other.get_newest_timetable()
 
     def __ge__(self, other):
-        return self.timestamp >= other.timestamp
+        #return self.deadline >= other.deadline
+        return self.get_newest_timetable() >= other.get_newest_timetable()
 
     def __bool__(self):
         return True
@@ -152,25 +158,27 @@ class Tasktory(object):
             raise ValueError()
 
         # self, otherをタイムスタンプの大小関係により再アサインする
-        old, new = sorted((self, other), key=lambda c:c.timestamp)
+        #old, new = sorted((self, other), key=lambda c:c.datestamp)
+        old, new = sorted((self, other))
 
         # 新しいタスクトリを作成する
-        ret = Tasktory(self.ID, new.name, new.timestamp)
+        #ret = Tasktory(self.ID, new.name, new.datestamp)
+        ret = Tasktory(self.ID, new.name)
 
-        # 期日はタイムスタンプが新しい方を優先する
+        # 期日は新しい方を優先する
         ret.deadline = new.deadline if new.deadline else old.deadline
 
         # 開始日はタイムスタンプが古い方を優先する
-        ret.start = old.start if old.start else new.start
+        #ret.start = old.start if old.start else new.start
 
         # 終了日はタイムスタンプが新しい方を使用する
-        ret.end = new.end
+        #ret.end = new.end
 
         # 作業時間は結合する。
         ret.timetable = [(s,t) for s,t in old.timetable + new.timetable]
         # TODO: 重複の解決をどこでするか決める
 
-        # ステータスはタイムスタンプが新しい方を使用する
+        # ステータスは新しい方を使用する
         ret.status = new.status
 
         # 親タスクトリは新しい方を優先する
@@ -182,7 +190,7 @@ class Tasktory(object):
             c = _.pop(0)
             ret.append((c + _.pop(_.index(c))) if c in _ else c.copy())
 
-        # コメントはタイムスタンプが新しい方を使用する
+        # コメントは新しい方を使用する
         ret.comments = new.comments
 
         return ret
@@ -190,28 +198,47 @@ class Tasktory(object):
     #==========================================================================
     # タスクトリデータ参照メソッド
     #==========================================================================
-    def get_last_timestamp(self):
-        """子タスクを含めた、最新のタイムスタンプを取得する
-        """
-        return max([self.timestamp] +
-                [c.get_last_timestamp() for c in self.children])
+    #def get_last_datestamp(self):
+    #    """子タスクを含めた、最新のタイムスタンプを取得する
+    #    """
+    #    return max([self.datestamp] +
+    #            [c.get_last_datestamp() for c in self.children])
 
+    # TODO: もっと良い名前にしたい
     def get_time(self):
         """合計作業時間（秒）を返す
         """
         return sum(t for _,t in self.timetable)
 
+    # TODO: もっと良い名前にしたい
     def get_total_time(self):
         """子タスクトリも含めた作業時間の合計を取得する
         """
         return self.get_time() +\
                 sum([c.get_total_time() for c in self.children])
 
+    # TODO: もっと良い名前にしたい
     def get_whole_timetable(self):
         """自身と子孫の全タイムテーブルを連結して返す
         """
         return self.timetable +\
                 sum([c.get_whole_timetable() for c in self.children], [])
+
+    # TODO: もっと良い名前にしたい
+    def get_oldest_timetable(self):
+        """タイムテーブルの中から最も小さい開始エポック秒を返す
+        作業時間が無い場合は0を返す
+        """
+        return sorted(self.timetable, key=lambda t:t[0])[0][0]\
+                if self.timetable else 0
+
+    # TODO: もっと良い名前にしたい
+    def get_newest_timetable(self):
+        """タイムテーブルの中から最も大きい開始エポック秒を返す
+        作業時間が無い場合は0を返す
+        """
+        return sorted(self.timetable, key=lambda t:t[0])[-1][0]\
+                if self.timetable else 0
 
     def is_open(self):
         """ステータスがOPENならTrueを返す
@@ -228,6 +255,9 @@ class Tasktory(object):
         """
         return self.status == Tasktory.CLOSE
 
+    def is_const(self):
+        return self.status == Tasktory.CONST
+
     #==========================================================================
     # タスクトリデータ変更メソッド
     #==========================================================================
@@ -237,8 +267,8 @@ class Tasktory(object):
         start - 作業開始時刻をエポック秒で指定する
         time  - 作業時間を秒で指定する
         """
-        if not self.timetable and sec > 0:
-            self.start = self.timestamp
+        #if not self.timetable and sec > 0:
+        #    self.start = self.datestamp
         self.timetable.append((start, sec))
         return self
 
@@ -255,7 +285,7 @@ class Tasktory(object):
         ステータスがOPENになり、終了日が消去される
         """
         self.status = Tasktory.OPEN
-        self.end = None
+        #self.end = None
         return self
 
     def wait(self):
@@ -263,7 +293,7 @@ class Tasktory(object):
         ステータスがWAITになり、終了日が消去される
         """
         self.status = Tasktory.WAIT
-        self.end = None
+        #self.end = None
         return self
 
     def close(self):
@@ -272,9 +302,17 @@ class Tasktory(object):
         開始日が記録されていない場合は記録する
         """
         self.status = Tasktory.CLOSE
-        if self.start is None:
-            self.start = self.timestamp
-        self.end = self.timestamp
+        #if self.start is None:
+        #    self.start = self.datestamp
+        #self.end = self.datestamp
+        return self
+
+    def const(self):
+        """タスクトリを定常タスクとみなす
+        定常タスクである場合各UIで専用の項目に配置される
+        それ以外には意味は無く、期日も設定できる
+        """
+        self.status = Tasktory.CONST
         return self
 
     #==========================================================================
@@ -303,7 +341,7 @@ class Tasktory(object):
         """タスクトリのフルパスを返す
         """
         return os.path.join(self.parent.get_path(root, namefunc) if self.parent
-                else root, namefunc(self))
+                else root, namefunc(self)).replace('\\', '/')
 
     def get_level(self):
         """タスクトリの階層を返す
@@ -313,10 +351,11 @@ class Tasktory(object):
     def copy(self):
         """タスクトリのディープコピーを返す
         """
-        task = Tasktory(self.ID, self.name, self.timestamp)
+        #task = Tasktory(self.ID, self.name, self.datestamp)
+        task = Tasktory(self.ID, self.name)
         task.deadline = self.deadline
-        task.start = self.start
-        task.end = self.end
+        #task.start = self.start
+        #task.end = self.end
         task.timetable = [(s,t) for s,t in self.timetable]
         task.status = self.status
         task.parent = self.parent
@@ -357,10 +396,10 @@ class Tasktory(object):
         if self.ID != other.ID: raise ValueError()
 
         self.name = other.name
-        self.timestamp = other.timestamp
+        #self.datestamp = other.datestamp
         self.deadline = other.deadline
-        self.start = other.start
-        self.end = other.end
+        #self.start = other.start
+        #self.end = other.end
         self.timetable = [(s,t) for s,t in other.timetable]
         self.status = other.status
         self.parent = other.parent

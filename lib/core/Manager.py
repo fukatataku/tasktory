@@ -17,7 +17,7 @@ class Manager:
     LOCK_FILE_NAME = '.lock'
 
     @staticmethod
-    def tasktory(name, timestamp):
+    def tasktory(name):
         """Tasktoryの作成を仲介し、ID（通し番号）を管理する
         """
         # 最大ID値を取得する
@@ -28,7 +28,7 @@ class Manager:
             max_id = 0
 
         # タスクトリを新規作成する
-        task = Tasktory(max_id, name, timestamp)
+        task = Tasktory(max_id, name)
 
         # 最大ID値を更新して保存する
         max_id += 1
