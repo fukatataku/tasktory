@@ -43,13 +43,6 @@ class Manager:
         """
         return DIR_NAME_TMPL.substitute({'ID': task.ID, 'NAME': task.name})
 
-    #@staticmethod
-    #def taskname(path):
-    #    """パスからタスクトリ名を取得する
-    #    """
-    #    dirname = os.path.basename(path)
-    #    return DIR_NAME_TMPL.parse(dirname)['NAME']
-
     @staticmethod
     def is_tasktory(path):
         """指定されたパスがタスクトリかどうかを返す

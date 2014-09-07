@@ -22,6 +22,11 @@ class Journal:
     head_reg = re.compile(r'^(%{?YEAR}?[^a-zA-Z0-9_%{}]+)')
     tail_reg = re.compile(r'([^a-zA-Z0-9_%{}]+%{?YEAR}?)$')
 
+    # TODO
+    # コンフィグは外部からコンフィグオブジェクト（read済みのConfigParser）を
+    # 渡した方が良いかもしれない。書き出し用のジャーナルテキストと一緒に
+    # コンフィグ変更のためのトリガーを返して、ジャーナル書き出し後に実行して
+    # 貰う。
     @staticmethod
     def read_config(section_name):
         """コンフィグを読み込んで各種テンプレートを読み込む
@@ -86,18 +91,18 @@ class Journal:
         datestamp = datetime.date(year, month, day).toordinal()
 
         # タスクライン
-        tasks = lambda obj:[o for o in obj.split('\n') if o.strip(' ') != '']
-        open_tasklines = tasks(journal_obj['OPENTASKS'])
-        wait_tasklines = tasks(journal_obj['WAITTASKS'])
-        close_tasklines = tasks(journal_obj['CLOSETASKS'])
-        const_tasklines = tasks(journal_obj['CONSTTASKS'])
+        split = lambda obj:[o for o in obj.split('\n') if o.strip(' ') != '']
+        open_tasklines = split(journal_obj['OPENTASKS'])
+        wait_tasklines = split(journal_obj['WAITTASKS'])
+        close_tasklines = split(journal_obj['CLOSETASKS'])
+        const_tasklines = split(journal_obj['CONSTTASKS'])
 
         # 各タスクラインをタスクトリに変換する
-        tsk = lambda t,s:Journal.tasktory(t, config, datestamp, s)
-        open_tasks = [tsk(t, Tasktory.OPEN) for t in open_tasklines]
-        wait_tasks = [tsk(t, Tasktory.WAIT) for t in wait_tasklines]
-        close_tasks = [tsk(t, Tasktory.CLOSE) for t in close_tasklines]
-        const_tasks = [tsk(t, Tasktory.CONST) for t in const_tasklines]
+        conv = lambda t,s:Journal.tasktory(t, config, datestamp, s)
+        open_tasks = [conv(t, Tasktory.OPEN) for t in open_tasklines]
+        wait_tasks = [conv(t, Tasktory.WAIT) for t in wait_tasklines]
+        close_tasks = [conv(t, Tasktory.CLOSE) for t in close_tasklines]
+        const_tasks = [conv(t, Tasktory.CONST) for t in const_tasklines]
 
         # メモ
         memo = journal_obj['MEMO']
@@ -114,7 +119,7 @@ class Journal:
         status : タスクラインのステータス
         """
         # コンフィグオブジェクトから各要素を取り出す
-        (date_tmpl, date_reg, time_tmpl, time_reg, times_delim,
+        (_, date_reg, _, time_reg, times_delim,
                 taskline_tmpl) = config
 
         # タスクラインをテンプレートに従ってパースする
@@ -166,16 +171,7 @@ class Journal:
             task.add_time(s, e - s)
 
         # ステータスを設定する
-        if status == Tasktory.OPEN:
-            task.open()
-        elif status == Tasktory.WAIT:
-            task.wait()
-        elif status == Tasktory.CLOSE:
-            task.close()
-        elif status == Tasktory.CONST:
-            task.const()
-        else:
-            raise ValueError()
+        task.status = status
 
         return task
 
@@ -191,6 +187,7 @@ class Journal:
             journal_tmpl = RWTemplate(f.read())
 
         # TODO: WriteTemplateをReadTemplateに書き込む
+        # TODO: journalのファイル書き出しが確定した後のほうが良い
 
         # タスクライン作成
         tasks = {Tasktory.OPEN: '',
@@ -206,8 +203,8 @@ class Journal:
 
         rexec(tasktory, regist, iter_func=lambda t:t.children,
                 iter_sort_func=lambda t:t.ID,
-                exec_cond_func=lambda t:not t.is_close(),
-                rec_cond_func=lambda t:not t.is_close())
+                exec_cond_func=lambda t:not t.status == Tasktory.CLOSE,
+                rec_cond_func=lambda t:not t.status == Tasktory.CLOSE)
 
         # ジャーナル作成
         journal = journal_tmpl.substitute({
@@ -258,6 +255,7 @@ class Journal:
             'EHOUR': end.hour,
             'EMIN': form(end.minute), 'ESEC': form(end.second)})
 
+# 以下はテスト用コード
 def timestamp(year, month, day, hour, minute, sec=0):
     return int(datetime.datetime(year, month, day,
         hour, minute, sec).timestamp())

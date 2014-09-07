@@ -15,6 +15,8 @@ JOURNAL_CONF_FILE = os.path.join(CONF_DIR, 'journal.conf')
 JOURNAL_READ_TMPL_FILE = os.path.join(TMPL_DIR, 'journal.read.tmpl')
 JOURNAL_WRITE_TMPL_FILE = os.path.join(TMPL_DIR, 'journal.write.tmpl')
 
+MANAGER_CONF_FILE = os.path.join(CONF_DIR, 'manager.conf')
+
 def rexec(node, exec_func, iter_func=iter, iter_sort_func=None,
         exec_cond_func=lambda n:True, rec_cond_func=lambda n:0):
     """ツリー構造のオブジェクトに対して再起的に処理を行う
