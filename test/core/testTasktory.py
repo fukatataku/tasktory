@@ -20,6 +20,12 @@ class TestTasktory(unittest.TestCase):
         self.assertTrue(task.parent is parent)
         self.assertEqual(len(task.children), childnum)
 
+    def check_child(self, task, *children):
+        self.assertListEqual(
+                sorted(task.children, key=lambda t:t.ID),
+                sorted(children, key=lambda t:t.ID)
+                )
+
     #==========================================================================
     # コンストラクタ
     #==========================================================================

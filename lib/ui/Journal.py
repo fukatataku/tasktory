@@ -134,8 +134,25 @@ class Journal:
                 if ID else Manager.tasktory(name)
 
         # 期日を解決する
-        match1 = Journal.num_reg.match(taskobj['DEADLINE'])
-        match2 = date_reg.match(taskobj['DEADLINE'])
+        task.deadline = Journal.deadline(
+                taskobj['DEADLINE'], date_reg, datestamp)
+
+        # 作業時間を解決する
+        [task.add_time(s,t) for s,t
+                in Journal.timetable(taskobj['TIMES'],
+                    times_delim, time_reg, datestamp)]
+
+        # ステータスを設定する
+        task.status = status
+
+        return task
+
+    @staticmethod
+    def deadline(deadline_str, date_reg, datestamp):
+        """タスクラインパース結果から期日を取得する
+        """
+        match1 = Journal.num_reg.match(deadline_str)
+        match2 = date_reg.match(deadline_str)
         if match1:
             deadline = datestamp + int(match1.group())
         elif match2:
@@ -150,9 +167,13 @@ class Journal:
             deadline = datetime.date(dyear, dmonth, dday).toordinal()
         else:
             raise ValueError()
-        task.deadline = deadline
 
-        # 作業時間を解決する
+        return deadline
+
+    @staticmethod
+    def timetable(times_str, times_delim, time_reg, datestamp):
+        """タスクラインのパース結果から作業時間を取得する
+        """
         date = datetime.date.fromordinal(datestamp)
         year, month, day = date.year, date.month, date.day
         for t in taskobj['TIMES'].split(times_delim):
@@ -168,21 +189,7 @@ class Journal:
             esec = int(match.groupdict().get('esec', 0))
             s = datetime.datetime(year, month, day, shour, smin).timestamp()
             e = datetime.datetime(year, month, day, ehour, emin).timestamp()
-            task.add_time(s, e - s)
-
-        # ステータスを設定する
-        task.status = status
-
-        return task
-
-    @staticmethod
-    def deadline():
-        # TODO: タスクラインパース結果から期日を取得する
-        return
-
-    @staticmethod
-    def timetable():
-        # TODO: タスクラインパース結果から作業時間を取得する
+            yield (s, e-s)
         return
 
     @staticmethod
