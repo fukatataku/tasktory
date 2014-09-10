@@ -1,20 +1,32 @@
 # -*- encoding:utf-8 -*-
 
-import os, pickle, glob
+import os, pickle, configparser
 
 from lib.core.Tasktory import Tasktory
 from lib.common.RWTemplate import RWTemplate
 from lib.common.common import DATA_DIR
+from lib.common.common import REPORT_CONF_FILE
 
 class Manager:
 
     MAX_ID_FILE = os.path.join(DATA_DIR, 'max_id')
 
-    # TODO: ディレクトリ名テンプレートは設定ファイルから持ってくる
-    DIR_NAME_TMPL = RWTemplate('%ID.%NAME')
-
     PROFILE_NAME = '.tasktory'
     LOCK_FILE_NAME = '.lock'
+
+    @staticmethod
+    def config(section_name):
+        """コンフィグを読み込み、加工して返す
+        """
+        config = configparser.ConfigParser()
+        config.read(REPORT_CONF_FILE)
+        section = config['section_name']
+
+        # ディレクトリ名テンプレート
+        dir_name_tmpl = RWTemplate(section['DIR_NAME_TMPL'])
+
+        ret = (dir_name_tmpl,)
+        return ret
 
     @staticmethod
     def tasktory(name):
@@ -38,10 +50,10 @@ class Manager:
         return task
 
     @staticmethod
-    def dirname(task):
+    def dirname(task, dir_name_tmpl):
         """タスクトリのディレクトリ名を取得する
         """
-        return DIR_NAME_TMPL.substitute({'ID': task.ID, 'NAME': task.name})
+        return dir_name_tmpl.substitute({'ID': task.ID, 'NAME': task.name})
 
     @staticmethod
     def is_tasktory(path):
@@ -72,13 +84,13 @@ class Manager:
         return task
 
     @staticmethod
-    def put(task, root):
+    def put(task, root, dir_name_tmpl):
         """タスクトリを保存する
         rootにはタスクトリツリーのルートパスを指定する
         ※タスクトリの親パスではなく、最上位タスクの親ディレクトリ
         """
         # タスクトリのフルパスを取得する
-        path = task.get_path(root, dirname)
+        path = task.get_path(root, lambda t:dirname(t, dir_name_tmpl))
 
         # ディレクトリを作成する
         os.makedirs(path)
@@ -107,16 +119,20 @@ class Manager:
         return task
 
     @staticmethod
-    def put_tree(tree, root):
+    def put_tree(tree, root, dir_name_tmpl=None):
         """タスクトリツリーを保存する
         rootにはタスクトリツリーのルートパスを指定する
         ※タスクトリツリーの親パスではなく、最上位タスクの親ディレクトリ
         """
+        # ディレクトリ名テンプレートを解決する
+        if dir_name_tmpl is None:
+            dir_name_tmpl = Manager.config('WriteTemplate')
+
         # タスクトリを保存する
-        put(tree, root)
+        put(tree, root, dir_name_tmpl)
 
         # サブタスクトリを保存する
-        [put_tree(c, root) for c in tree]
+        [put_tree(c, root, dir_name_tmpl) for c in tree]
 
     @staticmethod
     def check(tree):

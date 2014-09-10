@@ -28,7 +28,7 @@ class Journal:
     # コンフィグ変更のためのトリガーを返して、ジャーナル書き出し後に実行して
     # 貰う。
     @staticmethod
-    def read_config(section_name):
+    def config(section_name):
         """コンフィグを読み込んで各種テンプレートを読み込む
         """
         config = configparser.ConfigParser()
@@ -74,7 +74,7 @@ class Journal:
         メモがあればそれも返す
         """
         # テンプレートを取得する
-        config = Journal.read_config('ReadTemplate')
+        config = Journal.config('ReadTemplate')
         with open(JOURNAL_READ_TMPL_FILE, 'r', encoding='utf-8') as f:
             journal_tmpl = RWTemplate(f.read().rstrip('\n'))
 
@@ -114,7 +114,7 @@ class Journal:
     def tasktory(taskline, config, datestamp, status):
         """タスクラインからタスクトリを生成する
         taskline : ジャーナルテキストから読み出したタスクライン
-        config : read_config()で読み出したコンフィグオブジェクト
+        config : config()で読み出したコンフィグオブジェクト
         datestamp : ジャーナルの日付（グレゴリオ序数）
         status : タスクラインのステータス
         """
@@ -176,31 +176,41 @@ class Journal:
         return task
 
     @staticmethod
+    def deadline():
+        # TODO: タスクラインパース結果から期日を取得する
+        return
+
+    @staticmethod
+    def timetable():
+        # TODO: タスクラインパース結果から作業時間を取得する
+        return
+
+    @staticmethod
     def journal(date, tasktory, memo=None):
         """タスクトリからジャーナル用テキストを作成する
         date : ジャーナルの日付のdatetime.dateオブジェクト
         tasktory : タスクトリオブジェクト
         """
         # テンプレートを取得する
-        config = Journal.read_config('WriteTemplate')
+        config = Journal.config('WriteTemplate')
         with open(JOURNAL_WRITE_TMPL_FILE, 'r', encoding='utf-8') as f:
             journal_tmpl = RWTemplate(f.read())
 
         # TODO: WriteTemplateをReadTemplateに書き込む
         # TODO: journalのファイル書き出しが確定した後のほうが良い
 
-        # タスクライン作成
+        # タスクライン初期化
         tasks = {Tasktory.OPEN: '',
                 Tasktory.WAIT: '',
                 Tasktory.CLOSE: '',
                 Tasktory.CONST: ''}
 
+        # タスクライン追記関数作成
         def regist(node):
             taskline = Journal.taskline(node, config, date)
-            nonlocal tasks
-            tasks[node.status] += taskline + '\n'
-            return
+            nonlocal tasks; tasks[node.status] += taskline + '\n'
 
+        # タスクライン作成
         rexec(tasktory, regist, iter_func=lambda t:t.children,
                 iter_sort_func=lambda t:t.ID,
                 exec_cond_func=lambda t:not t.status == Tasktory.CLOSE,
@@ -221,7 +231,7 @@ class Journal:
     def taskline(node, config, date):
         """タスクラインを取得する
         node - Tasktoryオブジェクト
-        config - read_config()で得られるコンフィグオブジェクト
+        config - config()で得られるコンフィグオブジェクト
         date - ジャーナルの日付のdatetime.dateオブジェクト
         """
         # コンフィグ
