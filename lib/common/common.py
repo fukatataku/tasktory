@@ -11,11 +11,11 @@ CONF_DIR = os.path.join(HOME_DIR, 'conf')
 DATA_DIR = os.path.join(HOME_DIR, 'data', user)
 TMPL_DIR = os.path.join(HOME_DIR, 'template')
 
+MANAGER_CONF_FILE = os.path.join(CONF_DIR, 'manager.conf')
+
 JOURNAL_CONF_FILE = os.path.join(CONF_DIR, 'journal.conf')
 JOURNAL_READ_TMPL_FILE = os.path.join(TMPL_DIR, 'journal.read.tmpl')
 JOURNAL_WRITE_TMPL_FILE = os.path.join(TMPL_DIR, 'journal.write.tmpl')
-
-MANAGER_CONF_FILE = os.path.join(CONF_DIR, 'manager.conf')
 
 def rexec(node, exec_func, iter_func=iter, iter_sort_func=None,
         exec_cond_func=lambda n:True, rec_cond_func=lambda n:0):
