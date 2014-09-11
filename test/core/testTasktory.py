@@ -9,142 +9,195 @@ sys.path.append(HOME_DIR)
 
 from lib.core.Tasktory import Tasktory
 
+OPEN = Tasktory.OPEN
+WAIT = Tasktory.WAIT
+CLOSE = Tasktory.CLOSE
+CONST = Tasktory.CONST
+
 class TestTasktory(unittest.TestCase):
 
-    def check(self, task, name, deadline, status, parent,
-            total_time, child_num):
+    def check(self, task, ID, name, deadline, status, parent, comments):
+        self.assertEqual(task.ID, ID)
         self.assertEqual(task.name, name)
-        self.assertEqual(task.timestamp, timestamp)
         self.assertEqual(task.deadline, deadline)
         self.assertEqual(task.status, status)
-        self.assertTrue(task.parent is parent)
-        self.assertEqual(len(task.children), childnum)
+        self.assertIs(task.parent, parent)
+        self.assertIs(task.comments, comments)
+        return
 
     def check_child(self, task, *children):
         self.assertListEqual(
                 sorted(task.children, key=lambda t:t.ID),
                 sorted(children, key=lambda t:t.ID)
                 )
+        return
+
+    def check_time(self, task, *timetable):
+        self.assertListEqual(
+                sorted(task.timetable, key=lambda t:t[0]),
+                sorted(timetable, key=lambda t:t[0])
+                )
+        return
+
+    @classmethod
+    def setUpClass(cls):
+        return
+
+    @classmethod
+    def tearDownClass(cls):
+        return
+
+    def setUp(self):
+        # ID : 0, 1
+        # name : '', '#123.Hoge', 'ほげ'
+        # deadlinee : 0, 1
+        # timetable : [], [(0,1)], [(1,2)], [(0,1),(1,2)]
+        # status : OPNE, WAIT, CLOSE, CONST
+        # parent : None, t
+        # children : [], [t], [t, t], [t[t]], [t[t, t], t[t, t]]
+        # comments : '', 'HOGEHOGE', 'あいうえお'
+        return
+
+    def tearDown(self):
+        return
 
     #==========================================================================
     # コンストラクタ
     #==========================================================================
     def test_init(self):
-        pass
-
-    #==========================================================================
-    # 文字列表現
-    #==========================================================================
-    def test_repr(self):
-        pass
-
-    def test_str(self):
-        pass
+        return
 
     #==========================================================================
     # 比較／テスト
     #==========================================================================
     def test_lt(self):
-        pass
+        # TODO
+        return
 
     def test_le(self):
-        pass
+        # TODO
+        return
 
     def test_eq(self):
-        pass
+        # TODO
+        return
 
     def test_ne(self):
-        pass
+        # TODO
+        return
 
     def test_gt(self):
-        pass
+        # TODO
+        return
 
     def test_ge(self):
-        pass
+        # TODO
+        return
 
     def test_bool(self):
-        pass
+        return
 
     #==========================================================================
     # コンテナエミュレート
     #==========================================================================
     def test_len(self):
-        pass
+        # TODO
+        return
 
     def test_getitem(self):
-        pass
+        # TODO
+        return
 
     def test_setitem(self):
-        pass
+        # TODO
+        return
 
     def test_iter(self):
-        pass
+        # TODO
+        return
 
     def test_contains(self):
-        pass
+        # TODO
+        return
 
     #==========================================================================
     # 数値型エミュレート
     #==========================================================================
     def test_add(self):
-        pass
+        # TODO
+        return
 
     #==========================================================================
     # タスクトリデータ参照メソッド
     #==========================================================================
     def test_timetable_of_tree(self):
-        pass
+        # TODO
+        return
 
     def test_total_time(self):
-        pass
+        # TODO
+        return
 
     def test_total_time_of_tree(self):
-        pass
+        # TODO
+        return
 
     def test_first_timestamp(self):
-        pass
+        # TODO
+        return
 
     def test_last_timestamp(self):
-        pass
+        # TODO
+        return
 
     #==========================================================================
     # タスクトリデータ変更メソッド
     #==========================================================================
     def test_add_time(self):
-        pass
+        # TODO
+        return
 
     def test_append(self):
-        pass
+        # TODO
+        return
 
     #==========================================================================
     # 抽象データ参照メソッド
     #==========================================================================
     def test_get(self):
-        pass
+        # TODO
+        return
 
     def test_path(self):
-        pass
+        # TODO
+        return
 
     def test_level(self):
-        pass
+        # TODO
+        return
 
     def test_copy(self):
-        pass
+        # TODO
+        return
 
     def test_copy_of_tree(self):
-        pass
+        # TODO
+        return
 
     def test_clip(self):
-        pass
+        # TODO
+        return
 
     #==========================================================================
     # 抽象データ変更メソッド
     #==========================================================================
     def test_commit(self):
-        pass
+        # TODO
+        return
 
     def test_jack(self):
-        pass
+        # TODO
+        return
 
 if __name__ == '__main__':
     print(datetime.datetime.now())
