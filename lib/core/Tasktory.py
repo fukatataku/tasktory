@@ -10,7 +10,7 @@ class Tasktory(object):
     CONST = 'const'
 
     #def __init__(self, ID, name, datestamp):
-    def __init__(self, ID, name):
+    def __init__(self, ID, name, deadline):
 
         # タスクトリID
         self.ID = ID
@@ -19,7 +19,7 @@ class Tasktory(object):
         self.name = name
 
         # 期日（グレゴリオ序数）
-        self.deadline = None
+        self.deadline = deadline
 
         # タイムテーブル（開始エポック秒と作業時間（秒）のタプルのリスト）
         self.timetable = []
@@ -104,7 +104,8 @@ class Tasktory(object):
         for c in self.children:
             task = c.__getitem__(key)
             if task: return task
-        raise IndexError()
+        # TODO: 適切にIndexErrorを送出する
+        #raise IndexError()
 
     def __setitem__(self, key, value):
         """IDまたはタスクトリ名でツリー内のノードを指定し、valueに置き換える
@@ -114,11 +115,12 @@ class Tasktory(object):
         return
 
     def __iter__(self):
-        """自身に含まれる全タスクトリを直列に並べリスト化して返す
+        """ツリー内の全タスクトリを走査する
         """
-        ret = [self]
-        for s in [c.__iter__() for c in self.children]: ret += s
-        return ret
+        yield self
+        for child in self.children:
+            for c in child:
+                yield c
 
     def __contains__(self, item):
         """タスクツリー内にitemが含まれるか調べる
@@ -149,10 +151,9 @@ class Tasktory(object):
         old, new = sorted((self, other))
 
         # 新しいタスクトリを作成する
-        ret = Tasktory(self.ID, new.name)
-
-        # 期日は新しい方を優先する
-        ret.deadline = new.deadline if new.deadline else old.deadline
+        # 名前は新しい方を使用、期日は新しい方を優先
+        ret = Tasktory(self.ID, new.name,
+                new.deadline if new.deadline else old.deadline)
 
         # 作業時間は結合する。
         ret.timetable = old.timetable + new.timetable
@@ -181,7 +182,7 @@ class Tasktory(object):
         """ツリー全体のタイムテーブルを返す
         """
         return self.timetable +\
-                sum([c.get_whole_timetable() for c in self.children], [])
+                sum([c.timetable_of_tree() for c in self.children], [])
 
     def total_time(self):
         """合計作業時間（秒）を返す
@@ -191,8 +192,8 @@ class Tasktory(object):
     def total_time_of_tree(self):
         """ツリー全体の作業時間の合計を取得する
         """
-        return self.get_time() +\
-                sum([c.get_total_time() for c in self.children])
+        return self.total_time() +\
+                sum([c.total_time_of_tree() for c in self.children])
 
     def first_timestamp(self):
         """タイムテーブルの中から最も小さい開始エポック秒を返す
@@ -253,28 +254,45 @@ class Tasktory(object):
     def path(self, root='/', namefunc=lambda t:t.name):
         """タスクトリのフルパスを返す
         """
-        return os.path.join(self.parent.get_path(root, namefunc) if self.parent
+        return os.path.join(self.parent.path(root, namefunc) if self.parent
                 else root, namefunc(self)).replace('\\', '/')
 
     def level(self):
         """タスクトリの階層を返す
         """
-        return self.parent.get_level() + 1 if self.parent else 0
+        return self.parent.level() + 1 if self.parent else 0
 
     def copy(self):
+        """単一タスクトリのディープコピーを返す（親と子を含まない）
+        """
+        task = Tasktory(self.ID, self.name, self.deadline)
+        task.timetable = [(s,t) for s,t in self.timetable]
+        task.status = self.status
+        task.comments = self.comments
+        return task
+
+    def copy_of_tree(self):
         """タスクトリのディープコピーを返す
         """
-        #task = Tasktory(self.ID, self.name, self.datestamp)
-        task = Tasktory(self.ID, self.name)
-        task.deadline = self.deadline
-        #task.start = self.start
-        #task.end = self.end
+        task = Tasktory(self.ID, self.name, self.deadline)
         task.timetable = [(s,t) for s,t in self.timetable]
         task.status = self.status
         task.parent = self.parent
         task.children = [c.copy() for c in self.children]
         task.comments = self.comments
         return task
+
+    def clip(self, test=lambda t:t.status!=Tasktory.CLOSE):
+        """条件に一致するノードと、そのノードへの経路となるノードのみをコピーし
+        て返す。
+        test : 条件関数。引数としてタスクトリを受け取ってbool値を返す
+        """
+        children = [c.clip(test) for c in self.children]
+        if test(self) or any(children):
+            task = self.copy()
+            [task.append(c) for c in children if c is not None]
+            return task
+        return None
 
     #==========================================================================
     # 抽象データ変更メソッド

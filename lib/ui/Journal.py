@@ -73,6 +73,11 @@ class Journal:
         """ジャーナルテキストを読み込んでタスクトリのリストを返す
         メモがあればそれも返す
         """
+        # TODO: パスで指定された中間タスクトリも作成する
+        # /Project/Largetask/SmallTask @10 [9:00-12:00]
+        # 上記の場合 Project や Largetask が存在しなければ作成する必要がある
+        # その場合の期日やステータスも考える
+
         # テンプレートを取得する
         config = Journal.config('ReadTemplate')
         with open(JOURNAL_READ_TMPL_FILE, 'r', encoding='utf-8') as f:
@@ -128,14 +133,14 @@ class Journal:
         # タスクトリ名を解決する
         name = os.path.basename(taskobj['PATH'])
 
+        # 期日を解決する
+        deadline = Journal.deadline(
+                taskobj['DEADLINE'], date_reg, datestamp)
+
         # IDを解決し、タスクトリを作成する
         ID = taskobj['ID']
-        task = Tasktory(ID, name)\
-                if ID else Manager.tasktory(name)
-
-        # 期日を解決する
-        task.deadline = Journal.deadline(
-                taskobj['DEADLINE'], date_reg, datestamp)
+        task = Tasktory(ID, name, deadline)\
+                if ID else Manager.tasktory(name, deadline)
 
         # 作業時間を解決する
         [task.add_time(s,t) for s,t
@@ -151,6 +156,12 @@ class Journal:
     def deadline(deadline_str, date_reg, datestamp):
         """タスクラインパース結果から期日を取得する
         """
+        # TODO: 無指定の場合 deadine = None として、無期限タスクとする？
+        # @2014/9/11    ２０１４年９月１１日
+        # @9/11         ２０１４年９月１１日
+        # @10           １０日後
+        # @0            即日
+        # @             無期限
         match1 = Journal.num_reg.match(deadline_str)
         match2 = date_reg.match(deadline_str)
         if match1:

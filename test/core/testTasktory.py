@@ -131,6 +131,12 @@ class TestTasktory(unittest.TestCase):
     def test_copy(self):
         pass
 
+    def test_copy_of_tree(self):
+        pass
+
+    def test_clip(self):
+        pass
+
     #==========================================================================
     # タスクトリデータ変更メソッド
     #==========================================================================

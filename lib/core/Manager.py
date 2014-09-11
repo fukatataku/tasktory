@@ -29,7 +29,7 @@ class Manager:
         return ret
 
     @staticmethod
-    def tasktory(name):
+    def tasktory(name, deadline):
         """Tasktoryの作成を仲介し、ID（通し番号）を管理する
         """
         # 最大ID値を取得する
@@ -40,7 +40,7 @@ class Manager:
             max_id = 0
 
         # タスクトリを新規作成する
-        task = Tasktory(max_id, name)
+        task = Tasktory(max_id, name, deadline)
 
         # 最大ID値を更新して保存する
         max_id += 1
