@@ -156,12 +156,6 @@ class Journal:
     def deadline(deadline_str, date_reg, datestamp):
         """タスクラインパース結果から期日を取得する
         """
-        # TODO: 無指定の場合 deadine = None として、無期限タスクとする？
-        # @2014/9/11    ２０１４年９月１１日
-        # @9/11         ２０１４年９月１１日
-        # @10           １０日後
-        # @0            即日
-        # @             無期限
         match1 = Journal.num_reg.match(deadline_str)
         match2 = date_reg.match(deadline_str)
         if match1:
@@ -223,6 +217,9 @@ class Journal:
                 Tasktory.CLOSE: '',
                 Tasktory.CONST: ''}
 
+        # TODO: rexecを使う方法でなくても良さそう（clipを使う）
+        # TODO: ジャーナルに書き出す条件は一考の余地あり（中間タスクなど）
+
         # タスクライン追記関数作成
         def regist(node):
             taskline = Journal.taskline(node, config, date)
@@ -231,8 +228,8 @@ class Journal:
         # タスクライン作成
         rexec(tasktory, regist, iter_func=lambda t:t.children,
                 iter_sort_func=lambda t:t.ID,
-                exec_cond_func=lambda t:not t.status == Tasktory.CLOSE,
-                rec_cond_func=lambda t:not t.status == Tasktory.CLOSE)
+                exec_cond_func=lambda t:t.status != Tasktory.CLOSE,
+                rec_cond_func=lambda t:t.status != Tasktory.CLOSE)
 
         # ジャーナル作成
         journal = journal_tmpl.substitute({
