@@ -1,3 +1,4 @@
+#!C:/python/python3.4/python
 #!python3
 #-*- encoding:utf-8 -*-
 
@@ -65,23 +66,51 @@ class TestTasktory(unittest.TestCase):
         # category : None, '', 'Fuga', 'ふが'
         # comments : '', 'HOGEHOGE', 'あいうえお', 'hoge\n\rあ'
 
-        self.t000000 = Tasktory(0, '', 1)
-        self.t000001 = Tasktory(0, '', 1); self.t000001.status = WAIT
-        self.t000001.category = ''; self.t000001.comments = 'HOGEHOGE'
-        self.t000002 = Tasktory(0, '', 1); self.t000001.status = CLOSE
-        self.t000002.category = 'Fuga'; self.t000002.comments = 'あいうえお'
-        self.t000003 = Tasktory(0, '', 1); self.t000001.status = CONST
-        self.t000003.category = 'ふが'; self.t000003.comments = 'hoge\n\rあ'
+        # 基本
+        self.t0 = Tasktory(0, '', 1)
+
+        # ID
+        self.ti1 = Tasktory(1, '', 1)
+
+        # 名前
+        self.tn1 = Tasktory(0, '#123.Hoge', 1)
+        self.tn2 = Tasktory(0, 'ほげほげ', 1)
+
+        # 期日
+        self.td1 = Tasktory(0, '', 2)
 
         return
 
     def tearDown(self):
+        # self\.t.*[0-9] を削除する
+        names = [n for n in dir(self)
+                if n[0] == 't' and n[-1] in '1234567890' and '_' not in n]
+        cmds = ["del self.{}".format(n) for n in names]
+        for cmd in cmds: exec(cmd)
         return
 
     #==========================================================================
     # コンストラクタ
     #==========================================================================
     def test_init(self):
+        # 各変数が適切に設定されるかどうかを確認する
+        # 各変数の組み合わせは実施しない
+        # コンストラクタの引数に指定しないものは１回だけで良い
+
+        # 基本
+        self.check(self.t0, 0, '', 1, None, OPEN, None, '')
+        self.check_child(self.t0)
+        self.check_time(self.t0)
+
+        # ID
+        self.check(self.ti1, 1, '', 1, None, OPEN, None, '')
+
+        # 名前
+        self.check(self.tn1, 0, '#123.Hoge', 1, None, OPEN, None, '')
+        self.check(self.tn2, 0, 'ほげほげ', 1, None, OPEN, None, '')
+
+        # 期日
+        self.check(self.td1, 0, '', 2, None, OPEN, None, '')
         return
 
     #==========================================================================
@@ -89,6 +118,17 @@ class TestTasktory(unittest.TestCase):
     #==========================================================================
     def test_lt(self):
         # TODO
+        # 大小関係がタイムテーブルによって決定する事を確認する
+        # ID, 期日は無関係である事も確認する
+        self.tt1 = Tasktory(0, '', 1); self.tt1.timetable += [(0, 1)]
+        self.tt2 = Tasktory(0, '', 1); self.tt2.timetable += [(1, 2)]
+        self.tt3 = Tasktory(0, '', 1); self.tt3.timetable += [(0, 1),(1,2)]
+        self.ti1d1 = Tasktory(1, '', 2)
+        self.ti1d1t1 = Tasktory(1, '', 2); self.ti1d1t1.timetable += [(0, 1)]
+        self.ti1d1t2 = Tasktory(1, '', 2); self.ti1d1t1.timetable += [(1, 2)]
+        self.ti1d1t3 = Tasktory(1, '', 2); self.ti1d1t1.timetable += [(0, 1),(1,2)]
+        self.assertFalse(self.t0 < self.t0)
+        #self.assertTrue()
         return
 
     def test_le(self):

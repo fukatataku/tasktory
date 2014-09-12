@@ -113,8 +113,7 @@ class Tasktory(object):
         """
         yield self
         for child in self.children:
-            for c in child:
-                yield c
+            for c in child: yield c
 
     def __contains__(self, item):
         """タスクツリー内にitemが含まれるか調べる
