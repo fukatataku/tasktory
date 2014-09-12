@@ -4,12 +4,12 @@ import os
 
 class Tasktory(object):
 
+    # ステータス用定数
     OPEN = 'open'
     WAIT = 'wait'
     CLOSE = 'close'
     CONST = 'const'
 
-    #def __init__(self, ID, name, datestamp):
     def __init__(self, ID, name, deadline):
 
         # タスクトリID
@@ -24,14 +24,17 @@ class Tasktory(object):
         # タイムテーブル（開始エポック秒と作業時間（秒）のタプルのリスト）
         self.timetable = []
 
-        # ステータス（OPEN or WAIT or CLOSE or CONST）
-        self.status = Tasktory.OPEN
-
         # 親タスクトリ
         self.parent = None
 
         # 子タスクトリ（リスト）
         self.children = []
+
+        # ステータス（ステータス用定数）
+        self.status = Tasktory.OPEN
+
+        # 種別（任意）
+        self.category = None
 
         # コメント
         self.comments = ''
@@ -149,9 +152,6 @@ class Tasktory(object):
         # 作業時間は結合する。
         ret.timetable = old.timetable + new.timetable
 
-        # ステータスは新しい方を使用する
-        ret.status = new.status
-
         # 親タスクトリは新しい方を優先する
         ret.parent = new.parent if new.parent else old.parent
 
@@ -160,6 +160,12 @@ class Tasktory(object):
         while _:
             c = _.pop(0)
             ret.append((c + _.pop(_.index(c))) if c in _ else c.copy())
+
+        # ステータスは新しい方を使用する
+        ret.status = new.status
+
+        # 種別は新しい方を優先する
+        ret.category = new.category if new.category else old.category
 
         # コメントは新しい方を使用する
         ret.comments = new.comments
@@ -259,6 +265,7 @@ class Tasktory(object):
         task = Tasktory(self.ID, self.name, self.deadline)
         task.timetable = [(s,t) for s,t in self.timetable]
         task.status = self.status
+        task.category = self.category
         task.comments = self.comments
         return task
 
@@ -267,9 +274,10 @@ class Tasktory(object):
         """
         task = Tasktory(self.ID, self.name, self.deadline)
         task.timetable = [(s,t) for s,t in self.timetable]
-        task.status = self.status
         task.parent = self.parent
         task.children = [c.copy() for c in self.children]
+        task.status = self.status
+        task.category = self.category
         task.comments = self.comments
         return task
 
@@ -320,8 +328,9 @@ class Tasktory(object):
         self.name = other.name
         self.deadline = other.deadline
         self.timetable = [(s,t) for s,t in other.timetable]
-        self.status = other.status
         self.parent = other.parent
         self.children = [c for c in other.children]
+        self.status = other.status
+        self.category = other.category
         self.comments = other.comments
         return

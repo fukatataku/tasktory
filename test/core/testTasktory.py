@@ -16,12 +16,14 @@ CONST = Tasktory.CONST
 
 class TestTasktory(unittest.TestCase):
 
-    def check(self, task, ID, name, deadline, status, parent, comments):
+    def check(self, task, ID, name, deadline, parent,
+            status, category, comments):
         self.assertEqual(task.ID, ID)
         self.assertEqual(task.name, name)
         self.assertEqual(task.deadline, deadline)
-        self.assertEqual(task.status, status)
         self.assertIs(task.parent, parent)
+        self.assertEqual(task.status, status)
+        self.assertEqual(task.category, category)
         self.assertIs(task.comments, comments)
         return
 
@@ -49,13 +51,28 @@ class TestTasktory(unittest.TestCase):
 
     def setUp(self):
         # ID : 0, 1
+
         # name : '', '#123.Hoge', 'ほげ'
-        # deadlinee : 0, 1
+
+        # deadline : 1, 2
+
         # timetable : [], [(0,1)], [(1,2)], [(0,1),(1,2)]
-        # status : OPNE, WAIT, CLOSE, CONST
+
         # parent : None, t
         # children : [], [t], [t, t], [t[t]], [t[t, t], t[t, t]]
-        # comments : '', 'HOGEHOGE', 'あいうえお'
+
+        # status : OPEN, WAIT, CLOSE, CONST
+        # category : None, '', 'Fuga', 'ふが'
+        # comments : '', 'HOGEHOGE', 'あいうえお', 'hoge\n\rあ'
+
+        self.t000000 = Tasktory(0, '', 1)
+        self.t000001 = Tasktory(0, '', 1); self.t000001.status = WAIT
+        self.t000001.category = ''; self.t000001.comments = 'HOGEHOGE'
+        self.t000002 = Tasktory(0, '', 1); self.t000001.status = CLOSE
+        self.t000002.category = 'Fuga'; self.t000002.comments = 'あいうえお'
+        self.t000003 = Tasktory(0, '', 1); self.t000001.status = CONST
+        self.t000003.category = 'ふが'; self.t000003.comments = 'hoge\n\rあ'
+
         return
 
     def tearDown(self):
