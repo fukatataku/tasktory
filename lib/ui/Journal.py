@@ -11,7 +11,6 @@ import os, re, configparser, time, datetime
 
 from lib.core.Tasktory import Tasktory
 from lib.common.RWTemplate import RWTemplate
-from lib.common.common import rexec
 from lib.common.common import JOURNAL_CONF_FILE
 from lib.common.common import JOURNAL_READ_TMPL_FILE, JOURNAL_WRITE_TMPL_FILE
 
@@ -28,12 +27,12 @@ class Journal:
     # コンフィグ変更のためのトリガーを返して、ジャーナル書き出し後に実行して
     # 貰う。
     @staticmethod
-    def config(section_name):
-        """コンフィグを読み込んで各種テンプレートを読み込む
+    def config(section):
+        """渡されたコンフィグを読み込んで、各値を加工して返す
         """
-        config = configparser.ConfigParser()
-        config.read(JOURNAL_CONF_FILE, encoding='utf-8')
-        section = config[section_name]
+        #config = configparser.ConfigParser()
+        #config.read(JOURNAL_CONF_FILE, encoding='utf-8')
+        #section = config[section_name]
 
         # 日付テンプレート
         date_tmpl = RWTemplate(section['DATE'])
@@ -69,7 +68,7 @@ class Journal:
                 taskline_tmpl)
 
     @staticmethod
-    def tasktories(journal):
+    def tasktories(journal, config_section):
         """ジャーナルテキストを読み込んでタスクトリのリストを返す
         メモがあればそれも返す
         """
@@ -79,7 +78,7 @@ class Journal:
         # その場合の期日やステータスも考える
 
         # テンプレートを取得する
-        config = Journal.config('ReadTemplate')
+        config = Journal.config(config_section)
         with open(JOURNAL_READ_TMPL_FILE, 'r', encoding='utf-8') as f:
             journal_tmpl = RWTemplate(f.read().rstrip('\n'))
 
@@ -198,13 +197,13 @@ class Journal:
         return
 
     @staticmethod
-    def journal(date, tasktory, memo=None):
+    def journal(date, tasktory, memo=None, config_section):
         """タスクトリからジャーナル用テキストを作成する
         date : ジャーナルの日付のdatetime.dateオブジェクト
         tasktory : タスクトリオブジェクト
         """
         # テンプレートを取得する
-        config = Journal.config('WriteTemplate')
+        config = Journal.config(config_section)
         with open(JOURNAL_WRITE_TMPL_FILE, 'r', encoding='utf-8') as f:
             journal_tmpl = RWTemplate(f.read())
 
@@ -212,7 +211,7 @@ class Journal:
         # TODO: journalのファイル書き出しが確定した後のほうが良い
 
         # タスクライン初期化
-        tasks = {Tasktory.OPEN: '',
+        tasklines = {Tasktory.OPEN: '',
                 Tasktory.WAIT: '',
                 Tasktory.CLOSE: '',
                 Tasktory.CONST: ''}
@@ -221,23 +220,29 @@ class Journal:
         # TODO: ジャーナルに書き出す条件は一考の余地あり（中間タスクなど）
 
         # タスクライン追記関数作成
-        def regist(node):
-            taskline = Journal.taskline(node, config, date)
-            nonlocal tasks; tasks[node.status] += taskline + '\n'
+        #def regist(node):
+        #    taskline = Journal.taskline(node, config, date)
+        #    nonlocal tasks; tasks[node.status] += taskline + '\n'
 
         # タスクライン作成
-        rexec(tasktory, regist, iter_func=lambda t:t.children,
-                iter_sort_func=lambda t:t.ID,
-                exec_cond_func=lambda t:t.status != Tasktory.CLOSE,
-                rec_cond_func=lambda t:t.status != Tasktory.CLOSE)
+        #rexec(tasktory, regist, iter_func=lambda t:t.children,
+        #        iter_sort_func=lambda t:t.ID,
+        #        exec_cond_func=lambda t:t.status != Tasktory.CLOSE,
+        #        rec_cond_func=lambda t:t.status != Tasktory.CLOSE)
+
+        for node in tasktory:
+            if node.status == Tasktory.CLOSE or\
+                    node.deadline - date.toordinal() > INFINITE:
+                continue
+            tasklines[node.status] += Journal.taskline(node, config, date)
 
         # ジャーナル作成
         journal = journal_tmpl.substitute({
             'YEAR': date.year, 'MONTH': date.month, 'DAY': date.day,
-            'OPENTASKS': tasks[Tasktory.OPEN],
-            'WAITTASKS': tasks[Tasktory.WAIT],
-            'CLOSETASKS': tasks[Tasktory.CLOSE],
-            'CONSTTASKS': tasks[Tasktory.CONST],
+            'OPENTASKS': tasklines[Tasktory.OPEN],
+            'WAITTASKS': tasklines[Tasktory.WAIT],
+            'CLOSETASKS': tasklines[Tasktory.CLOSE],
+            'CONSTTASKS': tasklines[Tasktory.CONST],
             'MEMO': '' if memo is None else memo})
 
         return journal
