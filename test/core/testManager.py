@@ -12,6 +12,21 @@ from lib.core.Manager import Manager
 
 class TestTasktory(unittest.TestCase):
 
+    def test_config(self):
+        pass
+
+    def test_tasktory(self):
+        pass
+
+    def test_dirname(self):
+        pass
+
+    def test_is_tasktory(self):
+        pass
+
+    def test_list_tasktory(self):
+        pass
+
     def test_get(self):
         pass
 
@@ -24,7 +39,16 @@ class TestTasktory(unittest.TestCase):
     def test_put_tree(self):
         pass
 
-    def test_commit(self):
+    def test_check(self):
+        pass
+
+    def test_lock(self):
+        pass
+
+    def test_unlock(self):
+        pass
+
+    def test_islock(self):
         pass
 
 if __name__ == '__main__':

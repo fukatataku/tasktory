@@ -126,7 +126,7 @@ class Manager:
         """
         # ディレクトリ名テンプレートを解決する
         if dir_name_tmpl is None:
-            dir_name_tmpl = Manager.config('WriteTemplate')
+            dir_name_tmpl = Manager.config('WriteTemplate')[0]
 
         # タスクトリを保存する
         put(tree, root, dir_name_tmpl)
