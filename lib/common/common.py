@@ -12,8 +12,12 @@ CONF_DIR = os.path.join(HOME_DIR, 'conf')
 DATA_DIR = os.path.join(HOME_DIR, 'data', user)
 TMPL_DIR = os.path.join(HOME_DIR, 'template')
 
+# メイン設定ファイル
+MAIN_CONF_FILE = os.path.join(CONF_DIR, 'main.conf')
+
 # マネージャ関連ファイル
 MANAGER_CONF_FILE = os.path.join(CONF_DIR, 'manager.conf')
+MANAGER_DATA_FILE = os.path.join(DATA_DIR, 'manager.dat')
 
 # ジャーナル関連ファイル
 JOURNAL_CONF_FILE = os.path.join(CONF_DIR, 'journal.conf')

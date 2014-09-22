@@ -5,7 +5,7 @@ import os, pickle, configparser
 from lib.core.Tasktory import Tasktory
 from lib.common.RWTemplate import RWTemplate
 from lib.common.common import DATA_DIR
-from lib.common.common import REPORT_CONF_FILE
+#from lib.common.common import REPORT_CONF_FILE
 
 class Manager:
 
@@ -15,12 +15,12 @@ class Manager:
     LOCK_FILE_NAME = '.lock'
 
     @staticmethod
-    def config(section_name):
+    def config(section):
         """コンフィグを読み込み、加工して返す
         """
-        config = configparser.ConfigParser()
-        config.read(REPORT_CONF_FILE)
-        section = config['section_name']
+        #config = configparser.ConfigParser()
+        #config.read(REPORT_CONF_FILE)
+        #section = config['section_name']
 
         # ディレクトリ名テンプレート
         dir_name_tmpl = RWTemplate(section['DIR_NAME_TMPL'])
@@ -28,26 +28,26 @@ class Manager:
         ret = (dir_name_tmpl,)
         return ret
 
-    @staticmethod
-    def tasktory(name, deadline):
-        """Tasktoryの作成を仲介し、ID（通し番号）を管理する
-        """
-        # 最大ID値を取得する
-        if os.path.isfile(MAX_ID_FILE):
-            with open(MAX_ID_FILE, 'r') as f:
-                max_id = int(f.read())
-        else:
-            max_id = 0
+    #@staticmethod
+    #def tasktory(name, deadline):
+    #    """Tasktoryの作成を仲介し、ID（通し番号）を管理する
+    #    """
+    #    # 最大ID値を取得する
+    #    if os.path.isfile(MAX_ID_FILE):
+    #        with open(MAX_ID_FILE, 'r') as f:
+    #            max_id = int(f.read())
+    #    else:
+    #        max_id = 0
 
         # タスクトリを新規作成する
-        task = Tasktory(max_id, name, deadline)
+    #    task = Tasktory(max_id, name, deadline)
 
-        # 最大ID値を更新して保存する
-        max_id += 1
-        with open(MAX_ID_FILE, 'w') as f:
-            f.write(str(max_id))
+    #     # 最大ID値を更新して保存する
+    #     max_id += 1
+    #     with open(MAX_ID_FILE, 'w') as f:
+    #         f.write(str(max_id))
 
-        return task
+    #     return task
 
     @staticmethod
     def dirname(task, dir_name_tmpl):
@@ -119,14 +119,14 @@ class Manager:
         return task
 
     @staticmethod
-    def put_tree(tree, root, dir_name_tmpl=None):
+    def put_tree(tree, root, section, dir_name_tmpl=None):
         """タスクトリツリーを保存する
         rootにはタスクトリツリーのルートパスを指定する
         ※タスクトリツリーの親パスではなく、最上位タスクの親ディレクトリ
         """
         # ディレクトリ名テンプレートを解決する
         if dir_name_tmpl is None:
-            dir_name_tmpl = Manager.config('WriteTemplate')[0]
+            dir_name_tmpl = Manager.config(section)[0]
 
         # タスクトリを保存する
         put(tree, root, dir_name_tmpl)
