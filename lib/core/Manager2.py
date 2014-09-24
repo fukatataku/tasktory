@@ -55,7 +55,7 @@ class Manager:
         # ディレクトリを作成する
         os.makedirs(path)
 
-        # 不要なデータを削除する
+        # 保存用のオブジェクトを作成する
         tmp = task.copy()
 
         # タスクトリを保存する
@@ -73,11 +73,11 @@ class Manager:
         重複がある場合はTrue、無い場合はFalseを返す
         """
         # タイムテーブルを取得し、開始エポック秒でソートする
-        timetable = sorted(tree.timetable_of_tree(), key=lambda t:t[0])
+        table = sorted(sum([n.timetable for n in tree], []), key=lambda t:t[0])
 
         # 作業時間に重複がないか確認する
         last = 0
-        for s,t in timetable:
+        for s,t in table:
             if s < last: return True
             last = s + t
         return False

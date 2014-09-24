@@ -54,9 +54,6 @@ class Journal:
         """ジャーナルテキストを読み込んでパスとタスクトリのペアのリストを返す
         メモがあればそれも返す
         """
-        # ジャーナルの末尾に改行が無ければ追加する
-        #if journal[-1] != '\n': journal += '\n'
-
         # ジャーナルをパースする
         journal_dict = journal_tmpl.parse(journal)
 
