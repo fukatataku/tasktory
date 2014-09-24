@@ -1,5 +1,5 @@
-#!C:/python/python3.4/python
 #!python3
+#!C:/python/python3.4/python
 #-*- encoding:utf-8 -*-
 
 import sys, os, datetime, unittest
@@ -219,35 +219,33 @@ class TestTasktory(unittest.TestCase):
         return
 
     def test_eq(self):
-        # タイムテーブルの値で結果を確認する
+        # 名前によって決定する事を確認する
         self.assertTrue(self.t0 == self.t0)
-        self.assertFalse(self.t0 == self.tt1)
-        self.assertFalse(self.tt1 == self.tt2)
-        self.assertTrue(self.tt2 == self.tt3)
-        self.assertFalse(self.tt2 == self.tt1)
+        self.assertTrue(self.tn1 == self.tn1)
+        self.assertTrue(self.tn2 == self.tn2)
+        self.assertFalse(self.t0 == self.tn1)
+        self.assertFalse(self.t0 == self.tn2)
+        self.assertFalse(self.tn1 == self.tn2)
 
-        # 期日が無関係である事を確認する
-        self.assertTrue(self.t0 == self.td1)
-        self.assertFalse(self.t0 == self.td1t1)
-        self.assertFalse(self.tt1 == self.td1t2)
-        self.assertTrue(self.tt2 == self.td1t3)
-        self.assertFalse(self.tt2 == self.td1t1)
+        # 名前以外は関係ない事を確認する
+        self.assertFalse(self.td1s1t2 == self.tn1d1s1t2)
+        self.assertFalse(self.td1s1t2 == self.tn2d1s1t2)
+        self.assertFalse(self.tn1d1s1t2 == self.tn2d1s1t2)
         return
 
     def test_ne(self):
-        # タイムテーブルの値で結果を確認する
+        # 名前によって決定する事を確認する
         self.assertFalse(self.t0 != self.t0)
-        self.assertTrue(self.t0 != self.tt1)
-        self.assertTrue(self.tt1 != self.tt2)
-        self.assertFalse(self.tt2 != self.tt3)
-        self.assertTrue(self.tt2 != self.tt1)
+        self.assertFalse(self.tn1 != self.tn1)
+        self.assertFalse(self.tn2 != self.tn2)
+        self.assertTrue(self.t0 != self.tn1)
+        self.assertTrue(self.t0 != self.tn2)
+        self.assertTrue(self.tn1 != self.tn2)
 
-        # 期日が無関係である事を確認する
-        self.assertFalse(self.t0 != self.td1)
-        self.assertTrue(self.t0 != self.td1t1)
-        self.assertTrue(self.tt1 != self.td1t2)
-        self.assertFalse(self.tt2 != self.td1t3)
-        self.assertTrue(self.tt2 != self.td1t1)
+        # 名前以外は関係ない事を確認する
+        self.assertTrue(self.td1s1t2 != self.tn1d1s1t2)
+        self.assertTrue(self.td1s1t2 != self.tn2d1s1t2)
+        self.assertTrue(self.tn1d1s1t2 != self.tn2d1s1t2)
         return
 
     def test_gt(self):
@@ -324,13 +322,9 @@ class TestTasktory(unittest.TestCase):
     # 数値型エミュレート
     #==========================================================================
     def test_add(self):
-        # 名前は新しい方を使用し、順番は関係ない事を確認する
-        self.check(self.t0 + self.tn1, '#123.Hoge', 1, None, OPEN, None, '')
-        self.check(self.tn1 + self.t0, '', 1, None, OPEN, None, '')
-        self.check(self.tn1 + self.tn2t2, 'ほげほげ', 1, None, OPEN, None, '')
-        self.check(self.tn2t2 + self.tn1, 'ほげほげ', 1, None, OPEN, None, '')
-        self.check(self.tt2 + self.tn1, '', 1, None, OPEN, None, '')
-        self.check(self.tn1 + self.tt2, '', 1, None, OPEN, None, '')
+        # 名前は同じでなければならない事を確認する
+        self.assertRaises(ValueError, self.t0.__add__, self.tn1)
+        self.check(self.t0 + self.t0, '', 1, None, OPEN, None, '')
 
         # 期日は新しい方を使用し、順番は関係ない事を確認する
         self.check(self.t0 + self.td1, '', 2, None, OPEN, None, '')
@@ -345,47 +339,36 @@ class TestTasktory(unittest.TestCase):
         self.check(self.ts2t2 + self.ts1, '', 1, None, CLOSE, None, '')
 
         # タイムテーブルは単純結合される事を確認する
-        self.check_time(self.t0 + self.tn1)
         self.check_time(self.t0 + self.tt1, (0,1))
         self.check_time(self.tt1 + self.t0, (0,1))
         self.check_time(self.tt1 + self.tt2, (0,1), (1,2))
         self.check_time(self.tt2 + self.tt1, (1,2), (0,1))
         self.check_time(self.tt1 + self.tt3, (0,1), (0,1), (1,2))
 
-        # 親子
-        t1 = Tasktory('PROJ1', 1)
+        # TODO: 親子
+        t1 = Tasktory('Proj1', 1)
         self.assertListEqual([n.name for n in self.tp1 + t1],
-                ['PROJ1', 'LargeTask1', 'SmallTask1'])
+                ['Proj1', 'LargeTask1', 'SmallTask1'])
         self.assertListEqual([n.name for n in t1 + self.tp1],
                 ['Proj1', 'LargeTask1', 'SmallTask1'])
 
-        t1 = Tasktory('PROJ1', 1)
-        t11 = Tasktory('LARGETASK1', 2)
-        t111 = Tasktory('SMALLTASK1', 3)
+        t1 = Tasktory('Proj1', 1)
+        t11 = Tasktory('LargeTask1', 2)
+        t111 = Tasktory('SmallTask1', 3)
         t1.append(t11)
         t11.append(t111)
         self.assertListEqual([n.name for n in self.tp1 + t1],
-                ['PROJ1', 'LARGETASK1', 'SmallTask1'])
+                ['Proj1', 'LargeTask1', 'SmallTask1'])
         self.assertListEqual([n.name for n in t1 + self.tp1],
                 ['Proj1', 'LargeTask1', 'SmallTask1'])
 
-        t1 = Tasktory('PROJ1', 1); t1.timetable += [(2,10)]
-        t11 = Tasktory('LARGETASK1', 2); t11.timetable += [(2,10)]
-        t111 = Tasktory('SMALLTASK1', 3); t111.timetable += [(2,10)]
-        t1.append(t11)
-        t11.append(t111)
-        self.assertListEqual([n.name for n in self.tp1 + t1],
-                ['PROJ1', 'LARGETASK1', 'SMALLTASK1'])
-        self.assertListEqual([n.name for n in t1 + self.tp1],
-                ['PROJ1', 'LARGETASK1', 'SMALLTASK1'])
-
-        t3 = Tasktory('PROJ3', 1); t3.timetable += [(2,10)]
-        t31 = Tasktory('LARGETASK1', 1)
-        t311 = Tasktory('SMALLTASK1', 1); t311.timetable += [(2,10)]
-        t312 = Tasktory('SMALLTASK2', 1); t312.timetable += [(2,10)]
-        t32 = Tasktory('LARGETASK2', 1); t32.timetable += [(2,10)]
-        t323 = Tasktory('SMALLTASK3', 1)
-        t324 = Tasktory('SMALLTASK4', 1)
+        t3 = Tasktory('Proj3', 1); t3.timetable += [(2,10)]
+        t31 = Tasktory('LargeTask1', 1)
+        t311 = Tasktory('SmallTask1', 1); t311.timetable += [(2,10)]
+        t312 = Tasktory('SmallTask2', 1); t312.timetable += [(2,10)]
+        t32 = Tasktory('LargeTask2', 1); t32.timetable += [(2,10)]
+        t323 = Tasktory('SmallTask3', 1)
+        t324 = Tasktory('SmallTask4', 1)
         t3.append(t31)
         t31.append(t311)
         t31.append(t312)
@@ -393,31 +376,29 @@ class TestTasktory(unittest.TestCase):
         t32.append(t323)
         t32.append(t324)
         self.assertListEqual([n.name for n in self.tp3 + t3],
-                ['PROJ3', 'LARGETASK1', 'SMALLTASK1', 'SmallTask2',
-                    'LARGETASK2', 'SmallTask3', 'SmallTask4'])
+                ['Proj3', 'LargeTask1', 'SmallTask1', 'SmallTask2',
+                    'LargeTask2', 'SmallTask3', 'SmallTask4'])
         self.assertListEqual([n.name for n in t3 + self.tp3],
-                ['PROJ3', 'LargeTask1', 'SMALLTASK1', 'SmallTask2',
-                    'LARGETASK2', 'SmallTask3', 'SmallTask4'])
+                ['Proj3', 'LargeTask1', 'SmallTask1', 'SmallTask2',
+                    'LargeTask2', 'SmallTask3', 'SmallTask4'])
 
         # 種別は新しい方が優先される事を確認する
-        self.check(self.t0 + self.ta1, 0, '', 1, None, OPEN, 0, '')
-        self.check(self.t0 + self.ta2, 0, '', 1, None, OPEN, 1, '')
-        self.check(self.t0 + self.ta3, 0, '', 1, None, OPEN, '種別１', '')
-        self.check(self.ta1 + self.ta2, 0, '', 1, None, OPEN, 1, '')
-        self.check(self.ta2 + self.ta1, 0, '', 1, None, OPEN, 0, '')
-        self.check(self.ta2 + self.tt2, 0, '', 1, None, OPEN, 1, '')
-        self.check(self.tt2 + self.ta2, 0, '', 1, None, OPEN, 1, '')
-        self.check(self.ta3 + self.tt2a2, 0, '', 1, None, OPEN, 1, '')
-        self.check(self.tt2a2 + self.ta3, 0, '', 1, None, OPEN, 1, '')
+        self.check(self.t0 + self.ta1, '', 1, None, OPEN, 0, '')
+        self.check(self.t0 + self.ta2, '', 1, None, OPEN, 1, '')
+        self.check(self.t0 + self.ta3, '', 1, None, OPEN, '種別１', '')
+        self.check(self.ta1 + self.ta2, '', 1, None, OPEN, 1, '')
+        self.check(self.ta2 + self.ta1, '', 1, None, OPEN, 0, '')
+        self.check(self.ta2 + self.tt2, '', 1, None, OPEN, 1, '')
+        self.check(self.tt2 + self.ta2, '', 1, None, OPEN, 1, '')
+        self.check(self.ta3 + self.tt2a2, '', 1, None, OPEN, 1, '')
+        self.check(self.tt2a2 + self.ta3, '', 1, None, OPEN, 1, '')
 
         # コメントは新しい方を使用し、順番は関係ない事を確認する
-        self.check(self.t0 + self.tc1, 0, '', 1, None, OPEN, None, 'HOGEHOGE\n')
-        self.check(self.tc1 + self.t0, 0, '', 1, None, OPEN, None, '')
-        self.check(self.tc1 + self.tc2t2, 0, '', 1, None, OPEN, None, 'FUGAFUGA')
-        self.check(self.tc2t2 + self.tc1, 0, '', 1, None, OPEN, None, 'FUGAFUGA')
+        self.check(self.t0 + self.tc1, '', 1, None, OPEN, None, 'HOGEHOGE\n')
+        self.check(self.tc1 + self.t0, '', 1, None, OPEN, None, '')
+        self.check(self.tc1 + self.tc2t2, '', 1, None, OPEN, None, 'FUGAFUGA')
+        self.check(self.tc2t2 + self.tc1, '', 1, None, OPEN, None, 'FUGAFUGA')
 
-        # IDが一致しなければValueErrorになる事を確認する
-        self.assertRaises(ValueError, self.t0.__add__, self.ti1)
         return
 
     #==========================================================================
