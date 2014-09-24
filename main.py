@@ -1,10 +1,11 @@
 #!C:/python/python3.4/python
 # -*- encoding:utf-8 -*-
 
-import sys, os, time
+import sys, os, datetime, time, configparser
 
 from lib.core.Manager import Manager
 from lib.ui.Journal import Journal
+from lib.common.common import JOURNAL_CONF_FILE
 
 def main():
     # コンフィグ
@@ -15,36 +16,38 @@ def main():
     root = "C:/home/fukata/work"
     span = 10 # １０秒に１回
     journal_path = "C:/home/fukata/journal.txt"
+    profile_name = '.profile'
+    infinite = 365
+
+    today = datetime.date.today()
 
     #======================
     # ループに入る前の準備
     #======================
-    # ジャーナルを作成し、ファイルに書き出す
-    journal = Journal.journal(Manager.get_tree(root))
+    # コンフィグ
+    config = configparser.ConfigParser()
+    config.read(JOURNAL_CONF_FILE)
+    journal_tmpl = config['READ_TEMPLATE']['JOURNAL_TMPL']
+
+    # ジャーナルを有れば読み出す
+    if os.path.isfile(journal_path):
+        with open(journal_path, 'r') as f:
+            journal = f.read()
+        tasktories, memo = Journal.tasktories(journal, journal_tmpl)
+
+    # ファイルシステムからタスクツリーを読み出す
+    tree = Manager.get_tree(root, profile_name)
+
+    # ジャーナルを書き出す
+    journal = Journal.journal(today, tree, memo, journal_tmpl,
+            taskline_tmpl, time_tmpl, times_delim, infinite)
     with open(journal_path, 'w') as f:
         f.write(journal)
-    del journal
 
-    # ジャーナルのタイムスタンプを取得する
-    timestamp = os.stat(journal_path).st_mtime
-
-    while True:
-        time.sleep(span)
-        # ジャーナルのタイムスタンプを確認する
-        if os.stat(journal_path).st_mtime == timestamp: continue
-        tasks = Journal.tasktories(journal_path)
-        tree = Manager.get_tree(root)
-
-        # コミットする
-        for task in tasks:
-            target = tree.get(task.ID)
-            # TODO targetのタイムテーブルから当日の分を削除する
-            new_task = target + task
-            target.jack(new_task)
-
-        # 書き出す
-        Manager.put_tree(tree)
-        # TODO: ジャーナルも書き出す？
+def sync():
+    """ジャーナルを読んでファイルシステムにコミットする
+    """
+    return
 
 if __name__ == '__main__':
     # 処理内容

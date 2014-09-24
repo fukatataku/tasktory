@@ -34,10 +34,10 @@ ReportTemplate = RWTemplate(REPORT_TMPLSTR)
 TasklineTemplate = RWTemplate(TASKLINE_TMPLSTR)
 SimpleTasklineTemplate = RWTemplate(SIMPLE_TASKLINE_TMPLSTR)
 
-def report(tasktory, date, *args, **kwargs):
+def report(date, tasktory, *args, **kwargs):
     """タスクトリを受け取ってレポートテキストを返す
-    tasktory : タスクトリオブジェクト
     date : レポートの日付を示すdatetime.dateオブジェクト
+    tasktory : タスクトリオブジェクト
     args : 拡張用
     kwargs : 拡張用
     """
