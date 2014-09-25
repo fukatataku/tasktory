@@ -102,12 +102,12 @@ if __name__ == '__main__':
     today = datetime.date.today()
     timestamp = datetime.datetime(today.year, today.month, today.day
             , 0, 0, 0).timestamp()
-    t0 = Tasktory(1, 'HOGE', today.toordinal()); t0.add_time(timestamp, 3600)
-    t1 = Tasktory(2, 'FUGA', today.toordinal()); t1.add_time(timestamp, 3600)
-    t2 = Tasktory(3, 'PIYO', today.toordinal()); t2.add_time(timestamp, 3600)
-    t4 = Tasktory(5, 'BBB', today.toordinal()); t4.add_time(timestamp, 3600)
-    t5 = Tasktory(6, 'CCC', today.toordinal()); t5.add_time(timestamp, 3600)
-    t6 = Tasktory(7, 'DDD', today.toordinal()); t6.add_time(timestamp, 3600)
+    t0 = Tasktory('HOGE', today.toordinal()); t0.add_time(timestamp, 3600)
+    t1 = Tasktory('FUGA', today.toordinal()); t1.add_time(timestamp, 3600)
+    t2 = Tasktory('PIYO', today.toordinal()); t2.add_time(timestamp, 3600)
+    t4 = Tasktory('BBB', today.toordinal()); t4.add_time(timestamp, 3600)
+    t5 = Tasktory('CCC', today.toordinal()); t5.add_time(timestamp, 3600)
+    t6 = Tasktory('DDD', today.toordinal()); t6.add_time(timestamp, 3600)
     t0.append(t1); t1.status = Tasktory.CLOSE
     t0.append(t2)
     t0.append(t4)

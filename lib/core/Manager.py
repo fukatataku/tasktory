@@ -8,11 +8,11 @@ class Manager:
     # ディレクトリ → タスクトリ変換メソッド
     #==========================================================================
     @staticmethod
-    def get_tree(root, profile_name):
+    def get_tree(root, profile_name, rename=False):
         """指定したパス以下のタスクトリツリーを取得する
         """
         # タスクトリを復元する
-        task = Manager.get(root, profile_name)
+        task = Manager.get(root, profile_name, rename)
         if task is None: return None
 
         # サブタスクトリを復元する
@@ -23,7 +23,7 @@ class Manager:
         return task
 
     @staticmethod
-    def get(path, profile_name):
+    def get(path, profile_name, rename=True):
         """指定されたパスからタスクトリを作成して返す
         指定されたパスがタスクトリでなければNoneを返す
         """
@@ -37,6 +37,7 @@ class Manager:
         with open(profile, 'r') as f:
             try:
                 task = pickle.load(f)
+                if rename: task.name = os.path.basename(path)
             except pickle.UnpicklingError:
                 return None
 
