@@ -404,6 +404,10 @@ class TestTasktory(unittest.TestCase):
     #==========================================================================
     # タスクトリ参照メソッド
     #==========================================================================
+    def test_get(self):
+        # TODO
+        return
+
     def test_total_time(self):
         # 子無し
         self.assertEqual(self.t0.total_time(), 0)
@@ -495,6 +499,9 @@ class TestTasktory(unittest.TestCase):
     #==========================================================================
     # ツリー参照メソッド
     #==========================================================================
+    def test_find(self):
+        return
+
     def test_search(self):
         return
 

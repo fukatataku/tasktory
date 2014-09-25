@@ -18,7 +18,7 @@ def main():
     root = section['ROOT']
     profile_name = section['PROFILE']
     journal_file = section['JOURNAL']
-    infinite = section['INFINITE']
+    infinite = int(section['INFINITE'])
 
     # ファイルシステムからタスクツリーを読み出す
     tree = Manager.get_tree(root, profile_name)
