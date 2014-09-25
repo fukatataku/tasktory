@@ -50,7 +50,8 @@ class Journal:
     # ジャーナル → タスクトリ変換メソッド
     #==========================================================================
     @staticmethod
-    def tasktories(journal, journal_tmpl):
+    def tasktories(journal, journal_tmpl, taskline_tmpl,
+            date_reg, time_reg, times_delim):
         """ジャーナルテキストを読み込んでパスとタスクトリのペアのリストを返す
         メモがあればそれも返す
         """
@@ -58,10 +59,10 @@ class Journal:
         journal_dict = journal_tmpl.parse(journal)
 
         # ジャーナルの日付
-        datestamp = datetime.date(
+        date = datetime.date(
                 int(journal_dict['YEAR']),
                 int(journal_dict['MONTH']),
-                int(journal_dict['DAY'])).toordinal()
+                int(journal_dict['DAY']))
 
         # タスクライン
         tasklines = {}
@@ -72,7 +73,8 @@ class Journal:
 
         # 各タスクラインをタスクトリに変換する
         tasks = {}
-        conv = lambda t,s:Journal.tasktory(t, config, datestamp, s)
+        conv = lambda t,s:Journal.tasktory(date, s, t,
+                taskline_tmpl, date_reg, time_reg, times_delim)
         for key in (OPEN, WAIT, CLOSE, CONST):
             tasks[key] = [conv(t, key) for t in tasklines[key]]
 
@@ -85,8 +87,7 @@ class Journal:
     @staticmethod
     def tasktory(date, status, taskline,
             taskline_tmpl, date_reg, time_reg, times_delim):
-        """タスクラインからタスクトリを生成し、親タスクトリまでのパスと生成した
-        タスクトリを返す
+        """タスクラインからタスクトリを生成したタスクトリを返す
         date : ジャーナルの日付（datetime.dateオブジェクト）
         status : タスクラインのステータス
         taskline : ジャーナルテキストから読み出したタスクライン
@@ -94,20 +95,24 @@ class Journal:
         # タスクラインをテンプレートに従ってパースする
         taskdict = taskline_tmpl.parse(taskline)
 
-        # タスクトリ名を解決する
-        name = os.path.basename(taskdict['PATH'])
-
         # 期日を解決する
         deadline = Journal.deadline(date, taskdict['DEADLINE'], date_reg)
 
-        # タスクトリを作成する
-        task = Tasktory(name, deadline, status)
+        # タスクトリリストを作成する
+        _ = [Tasktory(n, deadline, status) for n in path.strip('/').split('/')]
 
         # 作業時間を解決する
-        [task.add_time(s,t) for s,t in Journal.timetable(
+        [_[-1].add_time(s,t) for s,t in Journal.timetable(
             date, taskdict['TIMES'], time_reg, times_delim)]
 
-        return os.path.dirname(taskdict['PATH']), task
+        # タスクトリリストを直列化
+        task = _[0]
+        tail = task
+        for t in _[1:]:
+            tail.append(t)
+            tail = t
+
+        return task
 
     @staticmethod
     def deadline(date, string, date_reg):

@@ -102,7 +102,7 @@ class Tasktory(object):
         ret.ID = self.ID
 
         # 作業時間は結合する。
-        ret.timetable = old.timetable + new.timetable
+        for s,t in old.timetable + new.timetable: ret.timetable.append(s,t)
 
         # 親タスクトリは新しい方を優先する
         ret.parent = new.parent if new.parent else old.parent
@@ -114,7 +114,7 @@ class Tasktory(object):
             ret.append((_.pop(_.index(c)) + c) if c in _ else c.deepcopy())
 
         # 種別は新しい方を優先する
-        ret.category = new.category if new.category is not None else old.category
+        ret.category = old.category if new.category is None else new.category
 
         # コメントは新しい方を使用する
         ret.comments = new.comments
@@ -124,6 +124,12 @@ class Tasktory(object):
     #==========================================================================
     # タスクトリ参照メソッド
     #==========================================================================
+    def get(self, name, default=None):
+        """子タスクトリから名前で検索する
+        """
+        children = [c for c in self.children if c.name == name]
+        return children[0] if children else default
+
     def total_time(self):
         """合計作業時間（秒）を返す
         """
@@ -154,7 +160,8 @@ class Tasktory(object):
         start - 作業開始時刻をエポック秒で指定する
         sec  - 作業時間を秒で指定する
         """
-        self.timetable.append((start, sec))
+        if (start, sec) in self.timetable:
+            self.timetable.append((start, sec))
         return self
 
     def append(self, child):
@@ -180,60 +187,32 @@ class Tasktory(object):
         self.status = other.status
         self.category = other.category
         self.comments = other.comments
-        return
+        return self
     #==========================================================================
     # ツリー参照メソッド
     #==========================================================================
-    def search(self, name=None, path=None, ID=None, level=-1):
-        """名前、パス、IDのいずれかでツリー内からタスクトリを検索する
-        検索する階層はlevelによる
-        level=1の場合直接の子までしか検索しない
-        level=-1とした場合は末端まで検索する
-        ただし、pathが指定された場合はlevelは無視される
-        name, path, IDはいずれか一つのみ非Noneとなる事が許される
-        複数ヒットする場合は最初の一つ目が返される
-        見つからない場合はNoneが返る
-
-        例）子タスクトリから名前が'HOGE'のものを検索する
-        tree.search(name='HOGE', level=1)
-        例）ツリー全体から特定のIDを検索する
-        tree.search(ID='xxx-xxx-xxx-xxx')
-        例）パスを指定する
-        tree.search(path='/Proj1/LargeTask1/SmallTask1')
+    def find(self, path):
+        """ツリー全体からパスで検索する
+        例）tree.find('/Project/LargeTask/SmallTask/step1')
         """
-        # 検索条件が複数指定された場合はエラー
-        if len([x for x in (name, path, ID) if x is not None]) != 1:
-            raise ValueError()
-
-        # 検索条件を設定する
-        if name is not None:
-            match = self.name == name
-            match_ret = self
-            end = level == 0
-            end_ret = None
-        elif ID is not None:
-            match =  self.ID == ID
-            match_ret = self
-            end = level == 0
-            end_ret = None
-        elif path is not None:
-            if isinstance(path, str): path = path.strip('/').split('/')
-            match = self.name != path[0]
-            match_ret = None
-            end = len(path) == 1
-            end_ret = self
-            path = path[1:]
-            level = -1
-        else:
-            raise ValueError()
-
-        # 検索する
-        if match: return match_ret
-        if end: return end_ret
+        if isinstance(path, str): path = path.rstrip('/').split('/')
+        if self.name != path[0]: return None
+        if len(path) == 1: return self
         for child in self.children:
-            ret = child.search(name, path, ID, level-1)
+            ret = child.find(path[1:])
             if ret is not None: return ret
         return None
+
+    def search(self, test):
+        """ツリー全体から条件に一致するタスクトリ全てを返す
+        例）期日が一定未満かつCLOSEでないもの
+        tree.search(lambda t:t.deadline < DEADLINE and t.status != CLOSE)
+        例）特定のIDのタスクトリ
+        tree.search(lambda t:t.ID == SPECIFIC_ID)[0]
+        """
+        ret = [self] if test(self) else []
+        for child in self.children: ret += child.search(test)
+        return ret
 
     def path(self, root='/'):
         """タスクトリのフルパスを返す
