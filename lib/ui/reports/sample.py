@@ -56,7 +56,6 @@ def report(date, tasktory, *args, **kwargs):
         # 出力条件
         # ・指定期間に作業時間が計上されている事（clipで解決済み）
         # ・期日が規定以上遠ければ進捗率を表示しない
-        #org = tasktory[node.ID]
         org = tasktory.search(lambda t:t.ID == node.ID)[0]
         rest = node.deadline - date.toordinal()
         rate = achieve_rate(org)

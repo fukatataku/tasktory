@@ -8,7 +8,7 @@ THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 HOME_DIR = os.path.abspath(os.path.join(THIS_DIR, '..', '..'))
 sys.path.append(HOME_DIR)
 
-from lib.core.Tasktory2 import Tasktory
+from lib.core.Tasktory import Tasktory
 
 OPEN = Tasktory.OPEN
 WAIT = Tasktory.WAIT
@@ -338,12 +338,12 @@ class TestTasktory(unittest.TestCase):
         self.check(self.ts1 + self.ts2t2, '', 1, None, CLOSE, None, '')
         self.check(self.ts2t2 + self.ts1, '', 1, None, CLOSE, None, '')
 
-        # タイムテーブルは単純結合される事を確認する
+        # タイムテーブルは重複なしで結合される事を確認する
         self.check_time(self.t0 + self.tt1, (0,1))
         self.check_time(self.tt1 + self.t0, (0,1))
         self.check_time(self.tt1 + self.tt2, (0,1), (1,2))
         self.check_time(self.tt2 + self.tt1, (1,2), (0,1))
-        self.check_time(self.tt1 + self.tt3, (0,1), (0,1), (1,2))
+        self.check_time(self.tt1 + self.tt3, (0,1), (1,2))
 
         # TODO: 親子
         t1 = Tasktory('Proj1', 1)
@@ -405,7 +405,16 @@ class TestTasktory(unittest.TestCase):
     # タスクトリ参照メソッド
     #==========================================================================
     def test_get(self):
-        # TODO
+        self.assertIsNone(self.t0.get(''))
+        self.assertIsNone(self.t0.get('#123.Hoge'))
+        self.assertTrue(self.t0.get('', True))
+        self.assertEqual(self.t0.get('', 0), 0)
+
+        self.assertIsNone(self.tp1.get(''))
+        self.assertIs(self.tp1.get('LargeTask1'), self.tp11)
+        self.assertIsNone(self.tp1.get('SmallTask1'))
+        self.assertIs(self.tp1.get('LargeTask1').get('SmallTask1'), self.tp111)
+        self.assertIs(self.tp2.get('LargeTask2'), self.tp22)
         return
 
     def test_total_time(self):
@@ -464,7 +473,7 @@ class TestTasktory(unittest.TestCase):
         self.t0.add_time(1, 2)
         self.check_time(self.t0, (0,1), (1,2))
         self.t0.add_time(1, 2)
-        self.check_time(self.t0, (0,1), (1,2), (1,2))
+        self.check_time(self.t0, (0,1), (1,2))
         return
 
     def test_append(self):
@@ -500,9 +509,11 @@ class TestTasktory(unittest.TestCase):
     # ツリー参照メソッド
     #==========================================================================
     def test_find(self):
+        # TODO
         return
 
     def test_search(self):
+        # TODO
         return
 
     def test_path(self):

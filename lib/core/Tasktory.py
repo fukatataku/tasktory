@@ -102,7 +102,7 @@ class Tasktory(object):
         ret.ID = self.ID
 
         # 作業時間は結合する。
-        for s,t in old.timetable + new.timetable: ret.timetable.append(s,t)
+        for s,t in old.timetable + new.timetable: ret.add_time(s,t)
 
         # 親タスクトリは新しい方を優先する
         ret.parent = new.parent if new.parent else old.parent
