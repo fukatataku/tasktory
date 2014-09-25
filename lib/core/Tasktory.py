@@ -160,7 +160,7 @@ class Tasktory(object):
         start - 作業開始時刻をエポック秒で指定する
         sec  - 作業時間を秒で指定する
         """
-        if (start, sec) in self.timetable:
+        if (start, sec) not in self.timetable:
             self.timetable.append((start, sec))
         return self
 

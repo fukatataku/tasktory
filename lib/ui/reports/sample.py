@@ -51,11 +51,13 @@ def report(date, tasktory, *args, **kwargs):
             datetime.timedelta(1)).timestamp()
 
     thisweek = ''
-    for node in tasktory.clip(lambda t:at(t, start, end)):
+    clip = tasktory.clip(lambda t:at(t, start, end))
+    for node in [] if clip is None else clip:
         # 出力条件
         # ・指定期間に作業時間が計上されている事（clipで解決済み）
         # ・期日が規定以上遠ければ進捗率を表示しない
-        org = tasktory[node.ID]
+        #org = tasktory[node.ID]
+        org = tasktory.search(lambda t:t.ID == node.ID)[0]
         rest = node.deadline - date.toordinal()
         rate = achieve_rate(org)
         tmpl = TasklineTemplate if rest <= INFINITE else SimpleTasklineTemplate
@@ -65,8 +67,8 @@ def report(date, tasktory, *args, **kwargs):
     # 来週の作業
     # OPEN, WAITのタスクを出力する
     nextweek = ''
-    for node in tasktory.clip(lambda t:at(t, start, end) and\
-            t.status != Tasktory.CLOSE):
+    clip = tasktory.clip(lambda t:t.status != Tasktory.CLOSE)
+    for node in [] if clip is None else clip:
         if node.deadline - date.toordinal() > INFINITE: continue
         nextweek += SimpleTasklineTemplate.substitute({
             'INDENT': INDENT * node.level(), 'PATH': node.name}) +'\n'
