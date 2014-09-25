@@ -9,6 +9,6 @@ def __modules__():
 
     name_list = [__package__+'.'+splitext(basename(p.replace('\\', '/')))[0]
             for p in glob(join(dirname(__file__), '*.py')) if p != __file__]
-    modules = [import_module(n) for n in NAME_LIST]
+    modules = [import_module(n) for n in name_list]
 
     return modules

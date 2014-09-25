@@ -14,11 +14,10 @@ def main():
     # コンフィグを読み出す
     configparser.ConfigParser()
     config.read(MAIN_CONF_FILE)
-    section = config['MAIN']
-    root = section['ROOT']
-    profile_name = section['PROFILE']
-    journal_file = section['JOURNAL']
-    infinite = int(section['INFINITE'])
+    root = config['MAIN']['ROOT']
+    profile_name = config['MAIN']['PROFILE_NAME']
+    journal_file = config['JOURNAL']['JOURNAL_FILE']
+    infinite = int(config['JOURNAL']['INFINITE'])
 
     # ファイルシステムからタスクツリーを読み出す
     tree = Manager.get_tree(root, profile_name)

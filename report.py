@@ -11,15 +11,15 @@ def main():
     # コンフィグを読み出す
     configparser.ConfigParser()
     config.read(MAIN_CONF_FILE)
-    section = config['MAIN']
-    root = section['ROOT']
-    profile_name = section['PROFILE_FILE']
+    root = config['MAIN']['ROOT']
+    profile_name = config['MAIN']['PROFILE_FILE']
+    report_dir = config['REPORT']['REPORT_DIR']
 
-    # ルートタスクトリを作成する
-    task = Tasktory('', 3650)
+    # ファイルシステムからタスクトリを読み出す
+    tree = Manager.get_tree(root, profile_name)
 
-    # ファイルシステムに書き込む
-    Manager.put(root, task)
+    # レポートを作成する
+
 
     return
 
