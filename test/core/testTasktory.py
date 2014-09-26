@@ -345,7 +345,7 @@ class TestTasktory(unittest.TestCase):
         self.check_time(self.tt2 + self.tt1, (1,2), (0,1))
         self.check_time(self.tt1 + self.tt3, (0,1), (1,2))
 
-        # TODO: 親子
+        # 親子
         t1 = Tasktory('Proj1', 1)
         self.assertListEqual([n.name for n in self.tp1 + t1],
                 ['Proj1', 'LargeTask1', 'SmallTask1'])
@@ -354,13 +354,15 @@ class TestTasktory(unittest.TestCase):
 
         t1 = Tasktory('Proj1', 1)
         t11 = Tasktory('LargeTask1', 2)
-        t111 = Tasktory('SmallTask1', 3)
+        t111 = Tasktory('SmallTask1', 4); t111.add_time(2,3)
+        t112 = Tasktory('SmallTask2', 4); t112.add_time(5,1)
         t1.append(t11)
         t11.append(t111)
+        t11.append(t112)
         self.assertListEqual([n.name for n in self.tp1 + t1],
-                ['Proj1', 'LargeTask1', 'SmallTask1'])
+                ['Proj1', 'LargeTask1', 'SmallTask1', 'SmallTask2'])
         self.assertListEqual([n.name for n in t1 + self.tp1],
-                ['Proj1', 'LargeTask1', 'SmallTask1'])
+                ['Proj1', 'LargeTask1', 'SmallTask1', 'SmallTask2'])
 
         t3 = Tasktory('Proj3', 1); t3.timetable += [(2,10)]
         t31 = Tasktory('LargeTask1', 1)
@@ -509,11 +511,55 @@ class TestTasktory(unittest.TestCase):
     # ツリー参照メソッド
     #==========================================================================
     def test_find(self):
-        # TODO
+        self.assertIsNone(self.t0.find('hoge'))
+        self.assertIs(self.t0.find(''), self.t0)
+        self.assertIs(self.t0.find('/'), self.t0)
+        self.assertIs(self.tn1.find('#123.Hoge'), self.tn1)
+        self.assertIs(self.tn1.find('#123.Hoge/'), self.tn1)
+
+        self.assertIs(self.tp1.find('Proj1'), self.tp1)
+        self.assertIs(self.tp1.find('Proj1/LargeTask1'), self.tp11)
+        self.assertIs(self.tp1.find('Proj1/LargeTask1/SmallTask1'), self.tp111)
+        self.assertIsNone(self.tp1.find('Proj1/LargeTask1/SmallTask1/step'))
+
+        self.assertIs(self.tp2.find('Proj2'), self.tp2)
+        self.assertIs(self.tp2.find('Proj2/LargeTask1'), self.tp21)
+        self.assertIs(self.tp2.find('Proj2/LargeTask2'), self.tp22)
+
+        self.assertIs(self.tp3.find('Proj3'), self.tp3)
+        self.assertIs(self.tp3.find('Proj3/LargeTask1'), self.tp31)
+        self.assertIs(self.tp3.find('Proj3/LargeTask1/SmallTask1'), self.tp311)
+        self.assertIs(self.tp3.find('Proj3/LargeTask1/SmallTask2'), self.tp312)
+        self.assertIs(self.tp3.find('Proj3/LargeTask2'), self.tp32)
+        self.assertIs(self.tp3.find('Proj3/LargeTask2/SmallTask3'), self.tp323)
+        self.assertIs(self.tp3.find('Proj3/LargeTask2/SmallTask4'), self.tp324)
         return
 
     def test_search(self):
-        # TODO
+        self.assertListEqual(self.t0.search(lambda t:False), [])
+        self.assertListEqual(self.t0.search(lambda t:True), [self.t0])
+        self.assertListEqual(self.t0.search(lambda t:t.status == OPEN), [self.t0])
+        self.assertListEqual(self.t0.search(lambda t:t.status == CLOSE), [])
+        self.assertListEqual(self.t0.search(lambda t:t.deadline == 1), [self.t0])
+        self.assertListEqual(self.t0.search(lambda t:t.deadline == 2), [])
+        self.assertListEqual(self.t0.search(lambda t:t.timestamp() == 0), [self.t0])
+        self.assertListEqual(self.t0.search(lambda t:t.timestamp() == 1), [])
+
+        self.assertListEqual(self.tp1.search(lambda t:True),
+                [self.tp1, self.tp11, self.tp111])
+        self.assertListEqual(self.tp1.search(lambda t:t.status != CLOSE),
+                [self.tp1, self.tp11])
+
+        self.assertListEqual(self.tp2.search(lambda t:True),
+                [self.tp2, self.tp21, self.tp22])
+        self.assertListEqual(self.tp2.search(lambda t:t.status != CLOSE),
+                [self.tp2, self.tp21])
+
+        self.assertListEqual(self.tp3.search(lambda t:True),
+                [self.tp3, self.tp31, self.tp311, self.tp312,
+                    self.tp32, self.tp323, self.tp324])
+        self.assertListEqual(self.tp3.search(lambda t:t.status != CLOSE),
+                [self.tp3, self.tp31, self.tp311, self.tp323, self.tp324])
         return
 
     def test_path(self):
