@@ -1,7 +1,8 @@
 # -*- encoding:utf-8 -*-
 
-import os, datetime, time
+import os, re, datetime, time
 
+from lib.common.RWTemplate import RWTemplate
 from lib.core.Tasktory import Tasktory
 
 # 定数
@@ -27,6 +28,7 @@ class Journal:
         """
         _ = Journal.head_reg.sub(r'(\1)?', tmpl_str)
         _ = Journal.tail_reg.sub(r'(\1)?', _)
+        _ = r'^' + _ + r'$'
         return re.compile(RWTemplate(_).substitute({
             'YEAR': r'(?P<year>(\d{2})?\d{2})',
             'MONTH': r'(?P<month>\d{1,2})',
@@ -38,6 +40,7 @@ class Journal:
         空白が含まれていても良いようにする
         """
         _ = Journal.delim_reg.sub(r'\s*\1\s*', tmpl_str)
+        _ = r'^' + _ + r'$'
         return re.compile(RWTemplate(_).substitute({
             'SHOUR': r'(?P<shour>\d{1,2})',
             'SMIN': r'(?P<smin>\d{2})',
@@ -118,11 +121,9 @@ class Journal:
     def deadline(date, string, date_reg):
         """タスクラインパース結果から期日を取得する
         """
-        datestamp = date.toordinal()
-
         # 数値が１つだけの場合は残り日数として解釈する
         match1 = Journal.num_reg.match(string)
-        if match1: return datestamp + int(match1.group())
+        if match1: return date.toordinal() + int(match1.group())
 
         match2 = date_reg.match(string)
         if not match2: raise ValueError()
@@ -132,11 +133,16 @@ class Journal:
         month = int(match2.group('month'))
         if match2.group('year'):
             year = int(match2.group('year'))
+            # 年数が下２桁のみの場合は補完する
+            if len(match2.group('year')) == 2:
+                tmp_year = year + date.year // 100 * 100
+                tmp_date = datetime.date(tmp_year, month, day)
+                year = tmp_year + (0 if tmp_date >= date else 100)
 
         # 年数が無い場合は、次に(month/day)の日付が来る年数を使用する
         else:
-            tmp_datestamp = datetime.date(date.year, month, day).toordinal()
-            year = date.year + (0 if tmp_datestamp >= datestamp else 1)
+            tmp_date = datetime.date(date.year, month, day)
+            year = date.year + (0 if tmp_date >= date else 1)
 
         return datetime.date(year, month, day).toordinal()
 
@@ -155,14 +161,12 @@ class Journal:
         if not all(matchs): raise ValueError()
         groupdicts = [m.groupdict() for m in matchs]
 
-        # マッチング結果から各時間要素を取り出す
-        gets = tuple(lambda d:d.get(s, 0)
-                for s in ('shour', 'smin', 'ssec', 'ehour', 'emin', 'esec'))
-        times = [tuple(get(d) for get in gets) for d in groupdicts]
-
-        # 年月日と時間要素からタイムスタンプを作成、タイムテーブルに変換する
-        dt = lambda h,m,s:datetime.datetime(year,month,day,h,m,s).timestamp()
-        table = [(dt(sh,sm,ss), dt(eh,em,es)) for sh,sm,ss,eh,em,es in times]
+        # 年月日とマッチング結果からタイムスタンプを作成する
+        dt = lambda h,m,s:int(datetime.datetime(
+            year,month,day,int(h),int(m),int(s)).timestamp())
+        get = lambda d,a,b,c:(d.get(a,0),d.get(b,0),d.get(c,0))
+        table = [(dt(*get(d, 'shour', 'smin', 'ssec')),
+            dt(*get(d, 'ehour', 'emin', 'esec'))) for d in groupdicts]
 
         return [(s, e-s) for s,e in table]
 
@@ -204,7 +208,7 @@ class Journal:
             for s,t in node.timetable if s >= time.mktime(date.timetuple())])
 
         return taskline_tmpl.substitute({
-            'PATH': node.get_path(),
+            'PATH': node.path(),
             'DEADLINE': node.deadline - date.toordinal(),
             'TIMES': times_phrase})
 
