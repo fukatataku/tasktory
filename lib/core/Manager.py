@@ -34,7 +34,7 @@ class Manager:
         if not os.path.isfile(profile): return None
 
         # タスクトリを復元する
-        with open(profile, 'r') as f:
+        with open(profile, 'rb') as f:
             try:
                 task = pickle.load(f)
                 if rename: task.name = os.path.basename(path)
@@ -60,7 +60,7 @@ class Manager:
         tmp = task.copy()
 
         # タスクトリを保存する
-        with open(os.path.join(path, PROFILE_NAME), 'w') as f:
+        with open(os.path.join(path, profile_name), 'wb') as f:
             pickle.dump(tmp, f)
 
         return
