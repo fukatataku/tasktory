@@ -11,7 +11,34 @@ from lib.core.Tasktory import Tasktory
 from lib.ui.Journal import Journal
 from lib.common.RWTemplate import RWTemplate
 
+OPEN = Tasktory.OPEN
+WAIT = Tasktory.WAIT
+CLOSE = Tasktory.CLOSE
+CONST = Tasktory.CONST
+
 class TestTasktory(unittest.TestCase):
+
+    def check(self, task, name, deadline, parent, status, category, comments):
+        self.assertEqual(task.name, name)
+        self.assertEqual(task.deadline, deadline)
+        self.assertIs(task.parent, parent)
+        self.assertEqual(task.status, status)
+        self.assertEqual(task.category, category)
+        self.assertEqual(task.comments, comments)
+        return
+
+    def check_child(self, task, *children):
+        self.assertListEqual(
+                sorted(task.children, key=lambda t:t.ID),
+                sorted(children, key=lambda t:t.ID)
+                )
+        return
+
+    def check_time(self, task, *timetable):
+        self.assertListEqual(
+                sorted(task.timetable, key=lambda t:t[0]),
+                sorted(timetable, key=lambda t:t[0])
+                )
 
     def test_date_regex(self):
         r = r'%YEAR/%MONTH/%DAY'
@@ -85,7 +112,47 @@ class TestTasktory(unittest.TestCase):
         return
 
     def test_tasktory(self):
-        # TODO
+        date = datetime.date(2014, 4, 1)
+        datestamp = date.toordinal()
+        timestamp = datetime.datetime(2014, 4, 1, 0, 0, 0).timestamp()
+        tl_tmpl = RWTemplate('%PATH @%DEADLINE [%TIMES]')
+        date_reg = Journal.date_regex(r'%YEAR/%MONTH/%DAY')
+        tm_tmpl = RWTemplate('%SHOUR:%SMIN-%EHOUR:%EMIN')
+        time_reg = Journal.time_regex('%SHOUR:%SMIN-%EHOUR:%EMIN')
+        tm_delim = ','
+
+        # 空タスクトリ
+        tl = '/ @0 []'
+        t = Journal.tasktory(date, OPEN, tl,
+                tl_tmpl, date_reg, time_reg, tm_delim)
+        self.check(t, '', datestamp, None, OPEN, None, '')
+        self.check_child(t)
+        self.check_time(t)
+
+        # 名前付き
+        tl = '#123.あいうえお @2014/05/01 [0:00-10:00]'
+        t = Journal.tasktory(date, Tasktory.WAIT, tl,
+                tl_tmpl, date_reg, time_reg, tm_delim)
+        self.check(t, '#123.あいうえお', datestamp + 30, None, WAIT, None, '')
+        self.check_child(t)
+        self.check_time(t, (timestamp, 36000))
+
+        tl = '#123.あいうえお @14/5/1 [0:00-1:00, 2:00-3:00]'
+        t = Journal.tasktory(date, Tasktory.WAIT, tl,
+                tl_tmpl, date_reg, time_reg, tm_delim)
+        self.check(t, '#123.あいうえお', datestamp + 30, None, WAIT, None, '')
+        self.check_child(t)
+        self.check_time(t, (timestamp, 3600), (timestamp+7200, 3600))
+
+        tl = '/#123.あいうえお @5/1 [0:00-1:00]'
+        t = Journal.tasktory(date, Tasktory.CONST, tl,
+                tl_tmpl, date_reg, time_reg, tm_delim)
+        self.check(t, '', datestamp + 30, None, CONST, None, '')
+        self.check_time(t)
+        t1 = t.children[0]
+        self.check(t1, '#123.あいうえお', datestamp + 30, t, CONST, None, '')
+        self.check_child(t1)
+        self.check_time(t1, (timestamp, 3600))
         return
 
     def test_deadline(self):

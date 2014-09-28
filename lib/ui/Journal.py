@@ -81,6 +81,12 @@ class Journal:
         for key in (OPEN, WAIT, CLOSE, CONST):
             tasks[key] = [conv(t, key) for t in tasklines[key]]
 
+        ##
+        for tls in tasklines.values():
+            prev = None
+            for tl in tls:
+                # コメント？
+
         # メモ
         memo = journal_obj['MEMO']
 
@@ -102,7 +108,8 @@ class Journal:
         deadline = Journal.deadline(date, taskdict['DEADLINE'], date_reg)
 
         # タスクトリリストを作成する
-        _ = [Tasktory(n, deadline, status) for n in path.strip('/').split('/')]
+        _ = [Tasktory(n, deadline, status)
+                for n in taskdict['PATH'].rstrip('/').split('/')]
 
         # 作業時間を解決する
         [_[-1].add_time(s,t) for s,t in Journal.timetable(
