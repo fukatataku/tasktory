@@ -9,7 +9,23 @@ ui
 |-- Report      - 作業報告書出力機能
 |-- reports/    - 作業報告書出力用テンプレートモジュール群
 `-- Summary     - HTMLによるサマリー出力機能
+service
+`-- monitor
+    |-- JournalMonitor
+    `-- TasktoryMonitor
+deamon
+`-- monitor
+    |-- JournalMonitor
+    `-- TasktoryMonitor
 
+◆モニタリングについて
+子プロセスをmultiprocessing.Processで作成し、
+win32file.CreateFile
+win32file.ReadDirectoryChangesW
+でファイル／ディレクトリの変更を待つ
+変更されたらwin32eventで適当にイベントを発生させる(win32event.CreateEvent)
+親プロセスでイベントを待っておき（WaitForMultipleObjects)、
+イベントが発生したら処理を行う
 
 ◆課題等
 
