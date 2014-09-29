@@ -108,7 +108,82 @@ class TestTasktory(unittest.TestCase):
         return
 
     def test_tasktories(self):
-        # TODO
+        j_tmpl ="""%YEAR/%MONTH/%DAY
+$ Todo
+%OPENTASKS
+$ Wait
+%WAITTASKS
+$ Done
+%CLOSETASKS
+$ Const
+%CONSTTASKS
+$ MEMO
+%MEMO"""
+        j_tmpl = RWTemplate(j_tmpl)
+        tl_tmpl = RWTemplate('%PATH @%DEADLINE [%TIMES]')
+        date_reg = Journal.date_regex(r'%YEAR/%MONTH/%DAY')
+        time_reg = Journal.time_regex('%SHOUR:%SMIN-%EHOUR:%EMIN')
+        tm_delim = ','
+        stamp = datetime.date(2014, 4, 1).toordinal()
+        tstamp = datetime.datetime(2014, 4, 1, 0, 0, 0).timestamp()
+
+        journal = """2014/04/01
+$ Todo
+/ @365 []
+# Root Tasktory
+/Project @30 []
+ # Project Tasktory
+/Project/Task1 @3 [0:00-1:00]
+ # あいうえお
+ # かきくけこ
+ # さしすせそ
+/Project/Task2 @3 [1:00-2:00, 4:00-5:00]
+$ Wait
+
+$ Done
+/Project/Task3 @0 [2:00-4:00]
+$ Const
+/Project/ConstTask @365 [5:00-10:00]
+$ MEMO
+This is memo
+hogehoge"""
+        tasks, memo = Journal.tasktories(journal,
+                j_tmpl, tl_tmpl, date_reg, time_reg, tm_delim)
+        def fullpath(t): return fullpath(t.children[0]) if t.children else t.path()
+        tasks = sorted(tasks, key=fullpath)
+        def foot(t): return foot(t) if t.children else t
+        self.check(tasks[0], '', stamp+365, None, OPEN, None, 'Root Tasktory')
+        self.assertListEqual(tasks[0].children, [])
+
+        self.check(tasks[1], '', stamp+30, None, OPEN, None, '')
+        self.check(tasks[1].children[0], 'Project', stamp+30,
+                tasks[1], OPEN, None, 'Project Tasktory')
+        self.assertListEqual(tasks[1].children[0].children, [])
+
+        self.check(tasks[2], '', stamp+365, None, CONST, None, '')
+        self.check(tasks[2].children[0], 'Project', stamp+365, tasks[2], CONST, None, '')
+        self.check(tasks[2].children[0].children[0], 'ConstTask', stamp+365,
+                tasks[2].children[0], CONST, None, '')
+
+        self.check(tasks[3], '', stamp+3, None, OPEN, None, '')
+        self.check_time(tasks[3])
+        self.check(tasks[3].children[0], 'Project', stamp+3, tasks[3], OPEN, None, '')
+        self.check_time(tasks[3].children[0])
+        self.check(tasks[3].children[0].children[0], 'Task1', stamp+3,
+                tasks[3].children[0], OPEN, None, 'あいうえお\nかきくけこ\nさしすせそ')
+        self.check_time(tasks[3].children[0].children[0], (tstamp, 3600))
+
+        self.check(tasks[4], '', stamp+3, None, OPEN, None, '')
+        self.check(tasks[4].children[0], 'Project', stamp+3, tasks[4], OPEN, None, '')
+        self.check(tasks[4].children[0].children[0], 'Task2', stamp+3,
+                tasks[4].children[0], OPEN, None, '')
+
+        self.check(tasks[5], '', stamp+0, None, CLOSE, None, '')
+        self.check(tasks[5].children[0], 'Project', stamp+0, tasks[5], CLOSE, None, '')
+        self.check(tasks[5].children[0].children[0], 'Task3', stamp+0,
+                tasks[5].children[0], CLOSE, None, '')
+
+        self.assertEqual(memo, 'This is memo\nhogehoge')
         return
 
     def test_tasktory(self):
@@ -153,6 +228,26 @@ class TestTasktory(unittest.TestCase):
         self.check(t1, '#123.あいうえお', datestamp + 30, t, CONST, None, '')
         self.check_child(t1)
         self.check_time(t1, (timestamp, 3600))
+
+        # 失敗
+        tl = ''
+        self.assertRaises(ValueError, Journal.tasktory, date, Tasktory.WAIT,
+                tl, tl_tmpl, date_reg, time_reg, tm_delim)
+        try:
+            t = Journal.tasktory(date, Tasktory.WAIT, tl,
+                    tl_tmpl, date_reg, time_reg, tm_delim)
+        except ValueError as e:
+            self.assertEqual(e.args[0], '')
+
+        tl = '/'
+        self.assertRaises(ValueError, Journal.tasktory, date, Tasktory.WAIT,
+                tl, tl_tmpl, date_reg, time_reg, tm_delim)
+        try:
+            t = Journal.tasktory(date, Tasktory.WAIT, tl,
+                    tl_tmpl, date_reg, time_reg, tm_delim)
+        except ValueError as e:
+            self.assertEqual(e.args[0], '/')
+
         return
 
     def test_deadline(self):

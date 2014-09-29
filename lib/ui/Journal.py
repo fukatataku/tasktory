@@ -69,26 +69,35 @@ class Journal:
 
         # タスクライン
         tasklines = {}
-        split = lambda obj:[o for o in obj.split('\n') if o.strip(' ') != '']
-        for k1, k2 in zip((OPEN, WAIT, CLOSE, CONST),
-                ('OPENTASKS', 'WAITTASKS', 'CLOSETASKS', 'CONSTTASKS')):
-            tasklines[k1] = split(journal_dict[k2])
+        statuses = (OPEN, WAIT, CLOSE, CONST)
+        keys = ('OPENTASKS', 'WAITTASKS', 'CLOSETASKS', 'CONSTTASKS')
+        for s, k in zip(statuses, keys):
+            tasklines[s] = [tl for tl in journal_dict[k].split('\n')
+                    if tl.strip(' ') != '']
 
         # 各タスクラインをタスクトリに変換する
         tasks = {}
-        conv = lambda t,s:Journal.tasktory(date, s, t,
-                taskline_tmpl, date_reg, time_reg, times_delim)
-        for key in (OPEN, WAIT, CLOSE, CONST):
-            tasks[key] = [conv(t, key) for t in tasklines[key]]
+        for key, tls in tasklines.items():
+            tasks[key] = []
 
-        ##
-        for tls in tasklines.values():
+            # タスクトリまたはコメント
+            _ = [tl.lstrip(' ')[1:].lstrip(' ') if tl.lstrip(' ')[0] == '#'
+                    else Journal.tasktory(date, key, tl, taskline_tmpl, date_reg,
+                        time_reg, times_delim) for tl in tls]
+
+            # コメントをタスクトリに格納する
             prev = None
-            for tl in tls:
-                # コメント？
+            for v in _:
+                if isinstance(v, Tasktory):
+                    tasks[key].append(v)
+                    prev = Journal.foot(v)
+                elif v is not None and prev is not None:
+                    prev.comments += ('' if prev.comments == '' else '\n') + v
+                else:
+                    continue
 
         # メモ
-        memo = journal_obj['MEMO']
+        memo = journal_dict['MEMO']
 
         # 各タスクリストを結合して返す
         return sum(tasks.values(), []), memo
@@ -102,7 +111,8 @@ class Journal:
         taskline : ジャーナルテキストから読み出したタスクライン
         """
         # タスクラインをテンプレートに従ってパースする
-        taskdict = taskline_tmpl.parse(taskline)
+        try: taskdict = taskline_tmpl.parse(taskline)
+        except ValueError: raise ValueError(taskline)
 
         # 期日を解決する
         deadline = Journal.deadline(date, taskdict['DEADLINE'], date_reg)
@@ -123,6 +133,11 @@ class Journal:
             tail = t
 
         return task
+
+    @staticmethod
+    def foot(task):
+        # 直列タスクトリの末端にアクセスする
+        return Journal.foot(task.children[0]) if task.children else task
 
     @staticmethod
     def deadline(date, string, date_reg):
