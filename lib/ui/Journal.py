@@ -206,12 +206,18 @@ class Journal:
         for node in tasktory:
             if (node.status == CLOSE or\
                     node.deadline - date.toordinal() > infinite): continue
+            # タスクライン
             tasklines[node.status] += Journal.taskline(
                     date, node, taskline_tmpl, time_tmpl, times_delim) + '\n'
+            # コメント
+            if node.comments: tasklines[node.status] += '\n'.join(
+                    [' # ' + c for c in node.comments.split('\n')]) + '\n'
 
         # ジャーナル作成
         journal = journal_tmpl.substitute({
-            'YEAR': date.year, 'MONTH': date.month, 'DAY': date.day,
+            'YEAR': '{:04}'.format(date.year),
+            'MONTH': '{:02}'.format(date.month),
+            'DAY': '{:02}'.format(date.day),
             'OPENTASKS': tasklines[OPEN],
             'WAITTASKS': tasklines[WAIT],
             'CLOSETASKS': tasklines[CLOSE],

@@ -297,7 +297,62 @@ hogehoge"""
         return
 
     def test_journal(self):
-        # TODO
+        j_tmpl ="""%YEAR/%MONTH/%DAY
+$ Todo
+%OPENTASKS
+$ Wait
+%WAITTASKS
+$ Done
+%CLOSETASKS
+$ Const
+%CONSTTASKS
+$ MEMO
+%MEMO"""
+        date = datetime.date(2014, 4, 1)
+        j_tmpl = RWTemplate(j_tmpl)
+        tl_tmpl = RWTemplate('%PATH @%DEADLINE [%TIMES]')
+        tm_tmpl = RWTemplate('%SHOUR:%SMIN-%EHOUR:%EMIN')
+        tm_delim = ','
+        stamp = datetime.date(2014, 4, 1).toordinal()
+        tstamp = datetime.datetime(2014, 4, 1, 0, 0, 0).timestamp()
+
+        root = Tasktory('', stamp + 366); root.comments += 'Root task'
+        proj = Tasktory('Project', stamp + 30); proj.comments += 'Project task'
+        root.append(proj)
+        task1 = Tasktory('Task1', stamp + 3).add_time(tstamp, 3600)
+        task1.comments = 'task1\nほげほげ'
+        proj.append(task1)
+        task2 = Tasktory('Task2', stamp + 3).add_time(
+                tstamp+3600, 3600).add_time(tstamp+10800, 3600)
+        proj.append(task2)
+        task3 = Tasktory('Task3', stamp + 0, CLOSE).add_time(tstamp+7200, 3600)
+        proj.append(task3)
+        ctask = Tasktory('ConstTask', stamp + 365, CONST).add_time(tstamp+14400, 3600)
+        proj.append(ctask)
+
+        j = Journal.journal(date, root, 'This is memo\nhogehoge',
+                j_tmpl, tl_tmpl, tm_tmpl, tm_delim, 365)
+
+        journal = """2014/04/01
+$ Todo
+/Project @30 []
+ # Project task
+/Project/Task1 @3 [0:00-1:00]
+ # task1
+ # ほげほげ
+/Project/Task2 @3 [1:00-2:00,3:00-4:00]
+
+$ Wait
+
+$ Done
+
+$ Const
+/Project/ConstTask @365 [4:00-5:00]
+
+$ MEMO
+This is memo
+hogehoge"""
+        self.assertEqual(j, journal)
         return
 
     def test_taskline(self):
