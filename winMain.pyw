@@ -19,7 +19,7 @@ def sync():
     """
     return
 
-def read_journal():
+def read_journal(journal_file):
     """ジャーナルを読みでタスクトリツリーを取得する
     """
     # ジャーナル読み込み用のコンフィグを読み込む
@@ -104,8 +104,15 @@ def main():
     # ファイルシステムからタスクツリーを読み出す
     tree = Manager.get_tree(root, profile_name)
 
-    # ジャーナルがあれば読んでおく
-    # 無ければ作成する
+    # ジャーナルからmemoを取得する
+    memo = read_journal(journal_file)[1]\
+            if os.path.isfile(journal_file) else ''
+
+    # 新しいジャーナルを書き出す
+    write_journal(today, tree, memo, infinite, journal_file)
+
+    # 新しいジャーナルを読み込む
+    tasks = read_journal(journal_file)[0]
 
     # 監視プロセスを作成する
     conn1, conn2 = Pipe()
@@ -120,16 +127,21 @@ def main():
     try:
         while True:
             # 通知が来るまでブロック
-            ret = conn1.recv()
+            ret = []
+            ret.append(conn1.recv())
+            while True:
+                conn1.poll(1)
 
             if ret == 0:
                 # ジャーナルが更新された場合の処理
                 # 前回のジャーナルの内容と比較して、同期が必要かどうか確認する
+                new_tasks = read_journal(journal_file)
                 pass
 
             else ret == 1:
                 # ファイルシステムが更新された場合の処理
                 # 前回のファイルシステムの内容と比較
+                new_tree = Manager.get_tree(root, profile_name)
                 pass
             pass
 
