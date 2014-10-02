@@ -14,9 +14,6 @@ from lib.common.common import JOURNAL_CONF_FILE
 from lib.common.common import JOURNAL_READ_TMPL_FILE
 from lib.common.common import JOURNAL_WRITE_TMPL_FILE
 
-def init():
-    return
-
 def sync():
     """ジャーナルの変更をファイルシステムに反映する
     """
@@ -31,7 +28,9 @@ def main():
     journal_file = config['JOURNAL']['JOURNAL_FILE']
     infinite = int(config['JOURNAL']['INFINITE'])
 
-    # 初期化する
+    # ルートが存在しなければ作成する
+    if not os.path.isfile(os.path.join(root, profile_name)):
+        Manager.put(root, Tasktory('', 3650))
 
     # ファイルシステムからタスクツリーを読み出す
     tree = Manager.get_tree(root, profile_name)
