@@ -37,10 +37,12 @@ class RWTemplate(Template):
         pattern = '%'.join(pattern_list)
 
         # 行頭に \A, 行末に \Z を追加する
-        self.pattern = r'\A' + pattern + r'\Z'
+        pattern = r'\A' + pattern + r'\Z'
 
         # コンパイルする
-        self.tmpl_reg = re.compile(self.pattern, re.DOTALL)
+        self.tmpl_reg = re.compile(pattern, re.DOTALL)
+
+        return
 
     def parse(self, string):
         m = self.tmpl_reg.match(string)

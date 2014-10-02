@@ -1,5 +1,5 @@
-#!python3
 #!C:/python/python3.4/python
+#!python3
 #-*- encoding:utf-8 -*-
 
 import sys, os, datetime, unittest

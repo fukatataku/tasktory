@@ -1,3 +1,4 @@
+#!C:/python/python3.4/python
 #!python3
 #-*- encoding:utf-8 -*-
 
@@ -118,7 +119,8 @@ $ Done
 $ Const
 %CONSTTASKS
 $ MEMO
-%MEMO"""
+%MEMO
+"""
         j_tmpl = RWTemplate(j_tmpl)
         tl_tmpl = RWTemplate('%PATH @%DEADLINE [%TIMES]')
         date_reg = Journal.date_regex(r'%YEAR/%MONTH/%DAY')
@@ -146,7 +148,8 @@ $ Const
 /Project/ConstTask @365 [5:00-10:00]
 $ MEMO
 This is memo
-hogehoge"""
+hogehoge
+"""
         tasks, memo = Journal.tasktories(journal,
                 j_tmpl, tl_tmpl, date_reg, time_reg, tm_delim)
         def fullpath(t): return fullpath(t.children[0]) if t.children else t.path()
@@ -307,7 +310,8 @@ $ Done
 $ Const
 %CONSTTASKS
 $ MEMO
-%MEMO"""
+%MEMO
+"""
         date = datetime.date(2014, 4, 1)
         j_tmpl = RWTemplate(j_tmpl)
         tl_tmpl = RWTemplate('%PATH @%DEADLINE [%TIMES]')
@@ -351,7 +355,8 @@ $ Const
 
 $ MEMO
 This is memo
-hogehoge"""
+hogehoge
+"""
         self.assertEqual(j, journal)
         return
 
