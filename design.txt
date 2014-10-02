@@ -9,14 +9,8 @@ ui
 |-- Report      - 作業報告書出力機能
 |-- reports/    - 作業報告書出力用テンプレートモジュール群
 `-- Summary     - HTMLによるサマリー出力機能
-service
-`-- monitor
-    |-- JournalMonitor
-    `-- TasktoryMonitor
-deamon
-`-- monitor
-    |-- JournalMonitor
-    `-- TasktoryMonitor
+monitor
+`-- monitor     - ファイル／ディレクトリを監視し、変更を通知する関数
 
 ◆モニタリングについて
 子プロセスをmultiprocessing.Processで作成し、
