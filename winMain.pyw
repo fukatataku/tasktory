@@ -19,12 +19,45 @@ def sync():
     """
     return
 
-def put_journal(date, ):
+def read_journal():
+    """ジャーナルを読みでタスクトリツリーを取得する
+    """
+    # ジャーナル読み込み用のコンフィグを読み込む
+    with open(JOURNAL_READ_TMPL_FILE, 'r') as f:
+        journal_tmpl = RWTemplate(f.read())
+    config = configparser.ConfigParser()
+    config.read(JOURNAL_CONF_FILE)
+    section = config['ReadTemplate']
+    taskline_tmpl = RWTemplate(section['TASKLINE'])
+    date_reg = Journal.date_regex(section['DATE'])
+    time_reg = Journal.time_regex(section['TIME'])
+    times_delim = section['TIMES_DELIM']
+
+    # ファイルからジャーナルテキストを読み込む
+    with open(journal_file, 'r') as f:
+        journal = f.read()
+
+    # ジャーナルからタスクトリリストを作成する
+    tasktories, memo = Journal.tasktories(journal,
+            journal_tmpl, taskline_tmpl, date_reg, time_reg, times_delim)
+
+    # タスクトリリストをツリーに統合する
+    tree = sum(tasktories[1:], tasktories[0]) if tasktories else None
+
+    # ツリーを診断する
+    if Manager.overlap(tree):
+        raise ValueError()
+
+    return tree, memo
+
+def write_journal(date, tree, memo, infinite, journal_file):
     """タスクトリツリーをジャーナルに書き出す
     """
     # ジャーナル書き出し用のコンフィグを読み込む
-    with open(JOURNAL_WRITE_TMPL_FILE, 'r') as f: journal_tmpl = f.read()
+    with open(JOURNAL_WRITE_TMPL_FILE, 'r') as f:
+        journal_tmpl = RWTemplate(f.read())
     config = configparser.ConfigParser()
+    config.read(JOURNAL_CONF_FILE)
     section = config['WriteTemplate']
     taskline_tmpl = RWTemplate(section['TASKLINE'])
     date_tmpl = RWTemplate(section['DATE'])
@@ -40,13 +73,15 @@ def put_journal(date, ):
         f.write(journal)
 
     # ジャーナル書き出し設定を読み込み設定にセットする
-    with open(JOURNAL_READ_TMPL_FILE, 'w') as f: f.write(journal_tmpl)
+    with open(JOURNAL_READ_TMPL_FILE, 'w') as f:
+        f.write(journal_tmpl.template)
     section = config['ReadTemplate']
     section['TASKLINE'] = taskline_tmpl.template
     section['DATE'] = date_tmpl.template
     section['TIME'] = time_tmpl.template
     section['TIMES_DELIM'] = times_delim
-    with open(JOURNAL_CONF_FILE, 'w') as f: config.write(f)
+    with open(JOURNAL_CONF_FILE, 'w') as f:
+        config.write(f)
 
     return
 
