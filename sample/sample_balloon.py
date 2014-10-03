@@ -25,6 +25,8 @@ class BalloonTip:
                 0, 0, win32con.CW_USEDEFAULT, win32con.CW_USEDEFAULT,
                 0, 0, hInst, None)
         win32gui.UpdateWindow(self.hWnd)
+
+        # Icon
         iconPathName = os.path.abspath(
                 os.path.join(sys.path[0], 'balloontip.ico'))
         icon_flags = win32con.LR_LOADFROMFILE | win32con.LR_DEFAULTSIZE
