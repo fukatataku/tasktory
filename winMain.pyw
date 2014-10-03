@@ -3,6 +3,7 @@
 # -*- encoding:utf-8 -*-
 
 import sys, os, datetime, time, configparser
+from functools import reduce
 from multiprocessing import Process, Pipe
 
 from lib.core.Manager import Manager
@@ -13,11 +14,6 @@ from lib.common.common import MAIN_CONF_FILE
 from lib.common.common import JOURNAL_CONF_FILE
 from lib.common.common import JOURNAL_READ_TMPL_FILE
 from lib.common.common import JOURNAL_WRITE_TMPL_FILE
-
-def sync():
-    """ジャーナルの変更をファイルシステムに反映する
-    """
-    return
 
 def read_journal(journal_file):
     """ジャーナルを読みでタスクトリツリーを取得する
@@ -85,8 +81,52 @@ def write_journal(date, tree, memo, infinite, journal_file):
 
     return
 
+def same(task1, task2):
+    # 名前をチェックする
+    if task1.name != task2.name:
+        raise ValueError()
+
+    # 作業時間の差異をチェックする
+    if set(task1.timetable) != set(task2.timetable):
+        return False
+
+    # ステータスの差異をチェックする
+    if task1.status != task2.status:
+        return False
+
+    # 期日の差異をチェックする
+    if task1.deadline != task2.deadline:
+        return False
+
+    return True
+
+def sametree(tree1, tree2):
+    """２つのタスクツリーの間に差分があるかどうかを調べる。
+    差分があればFalse、無ければTrueを返す。
+    差分として認める差異は
+    ・タスクトリの有無
+    ・タスクトリの作業時間の差異
+    ・タスクトリのステータスの差異
+    ・タスクトリの期日の差異
+    """
+    for t1, t2 in zip(tree1, tree2):
+        if not same(t1, t2):
+            return False
+    return True
+
+def taskpaths(dirpath, profile_name):
+    """指定したディレクトリ以下に含まれるタスクトリのパスのリストを取得する
+    """
+    paths = [os.path.join(dirpath, p).replace('\\', '/')
+            for p in os.listdir(dirpath)]
+    dirs = [p for p in paths if os.path.isdir(p)]
+    tasks = set([p for p in os.path.exists(os.path.join(p, profile_name))])
+    return set.union(tasks, *[dirtree(p, profile_name) for p in tasks])
+
 def main():
-    # コンフィグを読み込む
+    #====================
+    # 設定読み込み
+    #====================
     configparser.ConfigParser()
     config.read(MAIN_CONF_FILE)
     root = config['MAIN']['ROOT']
@@ -97,6 +137,9 @@ def main():
     # 日付
     today = datetime.date.today()
 
+    #====================
+    # 初期化
+    #====================
     # ルートが存在しなければ作成する
     if not os.path.isfile(os.path.join(root, profile_name)):
         Manager.put(root, Tasktory('', 3650))
@@ -111,8 +154,14 @@ def main():
     # 新しいジャーナルを書き出す
     write_journal(today, tree, memo, infinite, journal_file)
 
+    #====================
+    # 準備
+    #====================
     # 新しいジャーナルを読み込む
     tasks = read_journal(journal_file)[0]
+
+    # タスクトリのパスリスト
+    paths = taskpaths(root, profile_name)
 
     # 監視プロセスを作成する
     conn1, conn2 = Pipe()
@@ -123,27 +172,39 @@ def main():
     jmp.start()
     tmp.start()
 
+    #====================
     # ループ
+    #====================
     try:
         while True:
             # 通知が来るまでブロック
-            ret = []
-            ret.append(conn1.recv())
-            while True:
-                conn1.poll(1)
+            ret = conn1.recv()
 
             if ret == 0:
+                #========================================
                 # ジャーナルが更新された場合の処理
-                # 前回のジャーナルの内容と比較して、同期が必要かどうか確認する
-                new_tasks = read_journal(journal_file)
-                pass
+                #========================================
+                new_tasks, memo = read_journal(journal_file)
+                if sametree(tasks, new_tasks): continue
+
+                # ジャーナルの内容をツリーにマージしてシステムに書き出す
+                tasks = new_tasks
+                new_tree = tree + tasks
+                if Manager.overlap(new_tree): raise ValueError()
+                tree = new_tree
+                for node in tree: Manager.put(root, node, profile_name)
 
             else ret == 1:
+                #========================================
                 # ファイルシステムが更新された場合の処理
-                # 前回のファイルシステムの内容と比較
-                new_tree = Manager.get_tree(root, profile_name)
-                pass
-            pass
+                #========================================
+                new_paths = taskpaths(root, profile_name)
+                if paths == new_paths: continue
+
+                # ファイルシステムからツリーを読み出してジャーナルに書き出す
+                paths = new_paths
+                tree = Manager.get_tree(root, profile_name)
+                write_journal(today, tree, memo, infinite, journal_file)
 
     finally:
         jmp.terminate()
@@ -152,4 +213,4 @@ def main():
     return
 
 if __name__ == '__main__':
-    pass
+    main()
