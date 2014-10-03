@@ -37,6 +37,11 @@ def read_journal(journal_file):
     tasktories, memo = Journal.tasktories(journal,
             journal_tmpl, taskline_tmpl, date_reg, time_reg, times_delim)
 
+    # 同じタスクトリが複数存在する場合は例外を送出する
+    paths = [Journal.foot(t).path() for t in tasktories]
+    if len(paths) != len(set(paths)):
+        raise ValueError()
+
     # タスクトリリストをツリーに統合する
     tree = sum(tasktories[1:], tasktories[0]) if tasktories else None
 
@@ -165,8 +170,10 @@ def main():
 
     # 監視プロセスを作成する
     conn1, conn2 = Pipe()
-    jmp = Process(target=file_monitor, args=(journal_file, conn2, 0))
-    tmp = Process(target=dir_monitor, args=(root, conn2, 1))
+    jmp = Process(target=file_monitor, args=(journal_file, conn2))
+    tmp = Process(target=dir_monitor, args=(root, conn2))
+    jmpid = jmp.pid
+    tmpid = tmp.pid
 
     # 監視を開始する
     jmp.start()
@@ -180,7 +187,7 @@ def main():
             # 通知が来るまでブロック
             ret = conn1.recv()
 
-            if ret == 0:
+            if ret[0] == jmpid:
                 #========================================
                 # ジャーナルが更新された場合の処理
                 #========================================
@@ -194,7 +201,7 @@ def main():
                 tree = new_tree
                 for node in tree: Manager.put(root, node, profile_name)
 
-            else ret == 1:
+            elif ret[0] == tmpid:
                 #========================================
                 # ファイルシステムが更新された場合の処理
                 #========================================

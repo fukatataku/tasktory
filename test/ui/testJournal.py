@@ -1,5 +1,5 @@
-#!C:/python/python3.4/python
 #!python3
+#!C:/python/python3.4/python
 #-*- encoding:utf-8 -*-
 
 import sys, os, datetime, unittest
@@ -129,6 +129,25 @@ $ MEMO
         stamp = datetime.date(2014, 4, 1).toordinal()
         tstamp = datetime.datetime(2014, 4, 1, 0, 0, 0).timestamp()
 
+        # 空のジャーナル
+        journal = """2014/04/01
+$ Todo
+
+$ Wait
+
+$ Done
+
+$ Const
+
+$ MEMO
+
+"""
+        tasks, memo = Journal.tasktories(journal,
+                j_tmpl, tl_tmpl, date_reg, time_reg, tm_delim)
+        self.assertListEqual(tasks, [])
+        self.assertEqual(memo, '')
+
+        # 空でないジャーナル
         journal = """2014/04/01
 $ Todo
 / @365 []
@@ -320,6 +339,29 @@ $ MEMO
         stamp = datetime.date(2014, 4, 1).toordinal()
         tstamp = datetime.datetime(2014, 4, 1, 0, 0, 0).timestamp()
 
+        # None
+        self.assertRaises(TypeError, Journal.journal,
+            date, None, '', j_tmpl, tl_tmpl, tm_tmpl, tm_delim, 365)
+
+        # 出力タスクトリなし
+        root = Tasktory('', stamp + 366)
+        j = Journal.journal(date, root, '',
+                j_tmpl, tl_tmpl, tm_tmpl, tm_delim, 365)
+        journal = """2014/04/01
+$ Todo
+
+$ Wait
+
+$ Done
+
+$ Const
+
+$ MEMO
+
+"""
+        self.assertEqual(j, journal)
+
+        # タスクトリ
         root = Tasktory('', stamp + 366); root.comments += 'Root task'
         proj = Tasktory('Project', stamp + 30); proj.comments += 'Project task'
         root.append(proj)

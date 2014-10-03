@@ -70,6 +70,14 @@ class TestManager(unittest.TestCase):
         return
 
     def test_get_tree(self):
+        # 存在しないパス
+        self.assertFalse(os.path.exists(self.root))
+        self.assertIsNone(Manager.get_tree(self.root, self.profile))
+
+        # タスクトリでないパス
+        self.assertIsNone(Manager.get_tree('/Users/taku', self.profile))
+
+        # タスクトリ
         t0 = Tasktory('', 1)
         t1 = Tasktory('00.あ', 2)
         t2 = Tasktory('01.か', 3)
@@ -89,6 +97,13 @@ class TestManager(unittest.TestCase):
         return
 
     def test_get(self):
+        # 存在しないパスをgetする
+        self.assertFalse(os.path.exists(self.root))
+        self.assertIsNone(Manager.get(self.root, self.profile))
+
+        # タスクトリでないディレクトリをgetする
+        self.assertIsNone(Manager.get('/Users/taku', self.profile))
+
         # 空タスクトリをputしてからgetする
         t0 = Tasktory('', 1)
         Manager.put(self.root, t0, self.profile)

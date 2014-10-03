@@ -1,9 +1,12 @@
 # -*- encoding:utf-8 -*-
 
-def dir_monitor(dirpath, conn, monitor_id):
+def dir_monitor(dirpath, conn):
     """指定したディレクトリとそこに含まれるディレクトリに変更があったら通知する
     """
     import os, win32file, win32con
+
+    # プロセスID
+    pid = os.getpid()
 
     # 共有フラグ
     SHARE_FLAG = win32con.FILE_SHARE_READ |\
@@ -22,13 +25,16 @@ def dir_monitor(dirpath, conn, monitor_id):
                 hDir, 2014, True, NOTIFY_FLAG, None, None)
 
         # 通知する
-        conn.send(monitor_id)
+        conn.send((pid, None))
     return
 
-def file_monitor(filepath, conn, monitor_id):
+def file_monitor(filepath, conn):
     """指定したファイルに変更があったら通知する。
     """
     import os, win32file, win32con
+
+    # プロセスID
+    pid = os.getpid()
 
     # ディレクトリパスとファイル名を取得する
     dirpath = os.path.dirname(filepath)
@@ -57,5 +63,5 @@ def file_monitor(filepath, conn, monitor_id):
             if path != filename: continue
 
             # 通知する
-            conn.send(monitor_id)
+            conn.send((pid, None))
     return
