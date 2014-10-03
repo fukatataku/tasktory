@@ -4,9 +4,7 @@ import win32api, win32gui, win32con
 
 class TrayIcon:
 
-    import win32api, win32gui, win32con
-
-    ICON_PATH = 'C:/home/fukata/git/tasktory/sample/py.ico'
+    ICON_PATH = 'C:/home/fukata/git/tasktory/resource/py.ico'
     MSG_NOTIFY = win32con.WM_USER + 20
     MSG_POPUP = win32con.WM_USER + 21
 
@@ -119,9 +117,6 @@ if __name__ == '__main__':
 
     time.sleep(5)
     win32api.SendMessage(hwnd, msg, None, None)
-    #time.sleep(10)
-    #win32api.SendMessage(hwnd, msg, None, None)
-    #time.sleep(10)
 
     p.join()
     pass
