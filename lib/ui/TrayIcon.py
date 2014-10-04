@@ -56,6 +56,8 @@ class TrayIcon:
 
         # TODO: ポップアップメニューを作成する
         self.menu = win32gui.CreatePopupMenu()
+        for key, value in sorted(self.repo_map.items(), key=lambda d:d[0]):
+            win32gui.AppendMenu(self.menu, win32con.MF_STRING, key, value)
         win32gui.AppendMenu(self.menu, win32con.MF_STRING, 1024, 'Quit')
 
         # メッセージループに入る

@@ -6,14 +6,18 @@ import sys, os, datetime, time, configparser
 from functools import reduce
 from multiprocessing import Process, Pipe
 
+import win32api
+
 from lib.core.Manager import Manager
 from lib.ui.Journal import Journal
+from lib.ui.TrayIcon import TrayIcon
 from lib.monitor.monitor import file_monitor, dir_monitor
 
 from lib.common.common import MAIN_CONF_FILE
 from lib.common.common import JOURNAL_CONF_FILE
 from lib.common.common import JOURNAL_READ_TMPL_FILE
 from lib.common.common import JOURNAL_WRITE_TMPL_FILE
+from lib.common.common import ICON_PATH
 
 def read_journal(journal_file):
     """ジャーナルを読みでタスクトリツリーを取得する
@@ -139,6 +143,24 @@ def main():
     journal_file = config['JOURNAL']['JOURNAL_FILE']
     infinite = int(config['JOURNAL']['INFINITE'])
 
+    # TODO: ポップアップメッセージ
+    popmsg_map = {
+            0 : ('Journal Error', '作業時間の重複'),
+            1 : ('Journal Error', '同名のタスクトリ'),
+            2 : ('Journal Updated', 'ファイルシステムに書き出し開始'),
+            3 : ('Journal Updated', 'ファイルシステムに書き出し完了'),
+            4 : ('File System Updated', 'ジャーナルに書き出し開始'),
+            5 : ('File System Updated', 'ジャーナルに書き出し完了'),
+            }
+
+    #  TODO: レポート
+    repo_map = {
+            0 : 'all',
+            1 : 'チーム日報',
+            2 : 'チーム週報',
+            3 : '会社月報',
+            }
+
     # 日付
     today = datetime.date.today()
 
@@ -168,8 +190,13 @@ def main():
     # タスクトリのパスリスト
     paths = taskpaths(root, profile_name)
 
-    # 監視プロセスを作成する
+    # トレイアイコンを作成する
     conn1, conn2 = Pipe()
+    tip = Process(target=TrayIcon, args=(conn2, ICON_PATH, popmsg_map, repo_map))
+    hwnd = conn1.recv()
+    tipid = tip.pid
+
+    # 監視プロセスを作成する
     jmp = Process(target=file_monitor, args=(journal_file, conn2))
     tmp = Process(target=dir_monitor, args=(root, conn2))
     jmpid = jmp.pid
@@ -197,7 +224,9 @@ def main():
                 # ジャーナルの内容をツリーにマージしてシステムに書き出す
                 tasks = new_tasks
                 new_tree = tree + tasks
-                if Manager.overlap(new_tree): raise ValueError()
+                if Manager.overlap(new_tree):
+                    win32api.SendMessage(hwnd, 0)
+                    continue
                 tree = new_tree
                 for node in tree: Manager.put(root, node, profile_name)
 
@@ -212,6 +241,12 @@ def main():
                 paths = new_paths
                 tree = Manager.get_tree(root, profile_name)
                 write_journal(today, tree, memo, infinite, journal_file)
+
+            elif ret[0] == tipid:
+                #========================================
+                # トレイアイコンからコマンドが実行された場合の処理
+                #========================================
+                pass
 
     finally:
         jmp.terminate()
