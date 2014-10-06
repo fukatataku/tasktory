@@ -18,15 +18,8 @@ from lib.common.common import JOURNAL_READ_TMPL_FILE
 from lib.common.common import JOURNAL_WRITE_TMPL_FILE
 from lib.common.common import ICON_PATH
 
-class JournalOverlapError(RuntimeError):
-    """ジャーナル中にタイムテーブルの重複がある場合のエラー
-    """
-    pass
-
-class JournalDuplicationError(RuntimeError):
-    """ジャーナル中にタスクトリの重複がある場合のエラー
-    """
-    pass
+from lib.common.exceptions import JournalOverlapTimetableException
+from lib.common.exceptions import JounralDuplicateTasktoryException
 
 def read_journal(journal_file):
     """ジャーナルを読みでタスクトリツリーを取得する
@@ -53,14 +46,14 @@ def read_journal(journal_file):
     # 同じタスクトリが複数存在する場合は例外を送出する
     paths = [Journal.foot(t).path() for t in tasktories]
     if len(paths) != len(set(paths)):
-        raise JournalDuplicationError()
+        raise JournalDuplicateTasktoryException()
 
     # タスクトリリストをツリーに統合する
     tree = sum(tasktories[1:], tasktories[0]) if tasktories else None
 
     # ツリーを診断する
     if Manager.overlap(tree):
-        raise JournalOverlapError()
+        raise JournalOverlapTimetableException()
 
     return tree, memo
 
@@ -100,6 +93,13 @@ def write_journal(date, tree, memo, infinite, journal_file):
     return
 
 def same(task1, task2):
+    """２つのタスクトリ間に差分があるかどうかを調べる。
+    差分があればFalse、無ければTrueを返す。
+    差分として認める差異は
+    ・タイムテーブルの差異
+    ・ステータスの差異
+    ・期日の差異
+    """
     # 名前をチェックする
     if task1.name != task2.name:
         raise ValueError()
@@ -128,8 +128,7 @@ def sametree(tree1, tree2):
     ・タスクトリの期日の差異
     """
     for t1, t2 in zip(tree1, tree2):
-        if not same(t1, t2):
-            return False
+        if not same(t1, t2): return False
     return True
 
 def taskpaths(dirpath, profile_name):
@@ -182,6 +181,7 @@ def main():
     tree = Manager.get_tree(root, profile_name)
 
     # ジャーナルからmemoを取得する
+    # TODO: 例外処理
     memo = read_journal(journal_file)[1]\
             if os.path.isfile(journal_file) else ''
 
@@ -192,6 +192,7 @@ def main():
     # 準備
     #====================
     # 新しいジャーナルを読み込む
+    # TODO: 例外処理
     tasks = read_journal(journal_file)[0]
 
     # タスクトリのパスリスト
@@ -200,6 +201,7 @@ def main():
     # トレイアイコンを作成する
     conn1, conn2 = Pipe()
     tip = Process(target=TrayIcon, args=(conn2, ICON_PATH, popmsg_map, repo_map))
+    tip.start()
     hwnd = conn1.recv()
     tipid = tip.pid
 
@@ -227,10 +229,12 @@ def main():
                 #========================================
                 try:
                     new_tasks, memo = read_journal(journal_file)
-                except JournalOverlapError:
-                    pass
-                except JournalDuplicationError:
-                    pass
+                except JournalOverlapTimetableException:
+                    win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 0, None)
+                    continue
+                except JournalDuplicateTasktoryException:
+                    win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 1, None)
+                    continue
                 if sametree(tasks, new_tasks): continue
 
                 # ジャーナルの内容をツリーにマージしてシステムに書き出す
