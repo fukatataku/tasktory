@@ -10,6 +10,7 @@ import win32api
 
 from lib.core.Manager import Manager
 from lib.ui.Journal import Journal
+import lib.ui.reports as reports
 from lib.ui.TrayIcon import TrayIcon
 from lib.monitor.monitor import file_monitor, dir_monitor
 
@@ -156,9 +157,7 @@ def main():
     #  TODO: レポート
     repo_map = {
             0 : 'all',
-            1 : 'チーム日報',
-            2 : 'チーム週報',
-            3 : '会社月報',
+            1 : 'sample',
             }
 
     # 日付
@@ -225,7 +224,7 @@ def main():
                 tasks = new_tasks
                 new_tree = tree + tasks
                 if Manager.overlap(new_tree):
-                    win32api.SendMessage(hwnd, 0)
+                    win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 0, None)
                     continue
                 tree = new_tree
                 for node in tree: Manager.put(root, node, profile_name)

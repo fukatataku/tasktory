@@ -1,5 +1,7 @@
+#!C:/python/python3.4/python
 # -*- encoding:utf-8 -*-
 
+import os
 import win32api, win32gui, win32con
 
 class TrayIcon:
@@ -46,7 +48,7 @@ class TrayIcon:
 
         # アイコンを作成する
         icon_flags = win32con.LR_LOADFROMFILE | win32con.LR_DEFAULTSIZE
-        self.hicon = win32gui.LoadImage(hinst, self.icon_path,
+        self.hicon = win32gui.LoadImage(hinst, icon_path,
                 win32con.IMAGE_ICON, 0, 0, icon_flags)
 
         # タスクバーにアイコンを追加する
@@ -76,6 +78,12 @@ class TrayIcon:
         par = win32api.LOWORD(wparam)
         if par == 1024:
             win32gui.DestroyWindow(self.hwnd)
+            return
+
+        for key, value in self.repo_map.items():
+            if par == key:
+                self.conn.send((os.getpid(), key))
+                return
         return
 
     def notify(self, hwnd, msg, wparam, lparam):
@@ -104,17 +112,17 @@ class TrayIcon:
     def show_menu(self):
         pos = win32gui.GetCursorPos()
         win32gui.SetForegroundWindow(self.hwnd)
-        win32gui.TrackPopupMenu(menu, win32con.TPM_LEFTALIGN, pos[0], pos[1],
+        win32gui.TrackPopupMenu(self.menu, win32con.TPM_LEFTALIGN, pos[0], pos[1],
                 0, self.hwnd, None)
         win32gui.PostMessage(self.hwnd, win32con.WM_NULL, 0, 0)
         return 1
 
 if __name__ == '__main__':
     from multiprocessing import Process, Pipe
-    import time
+    import os, time
 
     # アイコンのパス
-    icon_path = '/Users/taku/git/tasktory/resource/py.ico'
+    icon_path = 'N:/git/tasktory/resource/py.ico'
     # ポップアップメッセージ
     popmsg_map = {
             0 : ('ジャーナルエラー', '作業時間の重複'),
@@ -137,8 +145,14 @@ if __name__ == '__main__':
     p.start()
     hwnd = conn1.recv()
 
-    time.sleep(5)
-    win32api.SendMessage(hwnd, 0, None, None)
+    ret = conn1.recv()
+    print(ret)
+    if ret[0] == p.pid and ret[1] in repo_map.keys():
+        print('Command: {0} {1}'.format(ret[1], repo_map[ret[1]]))
+
+    for key in popmsg_map.keys():
+        time.sleep(5)
+        win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, key, None)
 
     p.join()
     conn1.close()
