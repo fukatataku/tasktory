@@ -3,14 +3,12 @@
 # -*- encoding:utf-8 -*-
 
 import sys, os, datetime, time, configparser
-from functools import reduce
 from multiprocessing import Process, Pipe
 
 import win32api
 
 from lib.core.Manager import Manager
 from lib.ui.Journal import Journal
-import lib.ui.reports as reports
 from lib.ui.TrayIcon import TrayIcon
 from lib.monitor.monitor import file_monitor, dir_monitor
 
@@ -19,6 +17,16 @@ from lib.common.common import JOURNAL_CONF_FILE
 from lib.common.common import JOURNAL_READ_TMPL_FILE
 from lib.common.common import JOURNAL_WRITE_TMPL_FILE
 from lib.common.common import ICON_PATH
+
+class JournalOverlapError(RuntimeError):
+    """ジャーナル中にタイムテーブルの重複がある場合のエラー
+    """
+    pass
+
+class JournalDuplicationError(RuntimeError):
+    """ジャーナル中にタスクトリの重複がある場合のエラー
+    """
+    pass
 
 def read_journal(journal_file):
     """ジャーナルを読みでタスクトリツリーを取得する
@@ -45,14 +53,14 @@ def read_journal(journal_file):
     # 同じタスクトリが複数存在する場合は例外を送出する
     paths = [Journal.foot(t).path() for t in tasktories]
     if len(paths) != len(set(paths)):
-        raise ValueError()
+        raise JournalDuplicationError()
 
     # タスクトリリストをツリーに統合する
     tree = sum(tasktories[1:], tasktories[0]) if tasktories else None
 
     # ツリーを診断する
     if Manager.overlap(tree):
-        raise ValueError()
+        raise JournalOverlapError()
 
     return tree, memo
 
@@ -217,7 +225,12 @@ def main():
                 #========================================
                 # ジャーナルが更新された場合の処理
                 #========================================
-                new_tasks, memo = read_journal(journal_file)
+                try:
+                    new_tasks, memo = read_journal(journal_file)
+                except JournalOverlapError:
+                    pass
+                except JournalDuplicationError:
+                    pass
                 if sametree(tasks, new_tasks): continue
 
                 # ジャーナルの内容をツリーにマージしてシステムに書き出す
@@ -227,7 +240,15 @@ def main():
                     win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 0, None)
                     continue
                 tree = new_tree
-                for node in tree: Manager.put(root, node, profile_name)
+
+                # ファイルシステムへの書き出し開始を通知する
+                win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 2, None)
+
+                for node in tree:
+                    Manager.put(root, node, profile_name)
+
+                # ファイルシステムへの書き出し完了を通知する
+                win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 3, None)
 
             elif ret[0] == tmpid:
                 #========================================
@@ -238,8 +259,14 @@ def main():
 
                 # ファイルシステムからツリーを読み出してジャーナルに書き出す
                 paths = new_paths
+                # ジャーナルへの書き出し開始を通知する
+                win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 4, None)
+
                 tree = Manager.get_tree(root, profile_name)
                 write_journal(today, tree, memo, infinite, journal_file)
+
+                # ジャーナルへの書き出し完了を通知する
+                win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 5, None)
 
             elif ret[0] == tipid:
                 #========================================
