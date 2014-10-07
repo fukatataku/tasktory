@@ -94,9 +94,12 @@ class Tasktory(object):
         # self, otherをタイムスタンプの大小関係により再アサインする
         old, new = sorted((self, other))
 
+        # 期日は新しい方を優先する
+        deadline = old.deadline if new.deadline is None else new.deadline
+
         # 新しいタスクトリを作成する
         # 名前、期日、ステータスは新しい方を使用する
-        ret = Tasktory(new.name, new.deadline, new.status)
+        ret = Tasktory(new.name, deadline, new.status)
 
         # IDはselfを使用する
         ret.ID = self.ID
@@ -232,7 +235,7 @@ class Tasktory(object):
         task.ID = self.ID
         task.timetable = [(s,t) for s,t in self.timetable]
         task.parent = self.parent
-        task.children = [c.copy() for c in self.children]
+        task.children = [c.deepcopy() for c in self.children]
         task.category = self.category
         task.comments = self.comments
         return task

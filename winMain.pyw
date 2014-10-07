@@ -7,10 +7,12 @@ from multiprocessing import Process, Pipe
 
 import win32api
 
+from lib.core.Tasktory import Tasktory
 from lib.core.Manager import Manager
 from lib.ui.Journal import Journal
 from lib.ui.TrayIcon import TrayIcon
 from lib.monitor.monitor import file_monitor, dir_monitor
+from lib.common.RWTemplate import RWTemplate
 
 from lib.common.common import MAIN_CONF_FILE
 from lib.common.common import JOURNAL_CONF_FILE
@@ -18,17 +20,18 @@ from lib.common.common import JOURNAL_READ_TMPL_FILE
 from lib.common.common import JOURNAL_WRITE_TMPL_FILE
 from lib.common.common import ICON_PATH
 
+from lib.common.exceptions import JournalReadException
 from lib.common.exceptions import JournalOverlapTimetableException
-from lib.common.exceptions import JounralDuplicateTasktoryException
+from lib.common.exceptions import JournalDuplicateTasktoryException
 
 def read_journal(journal_file):
     """ジャーナルを読みでタスクトリツリーを取得する
     """
     # ジャーナル読み込み用のコンフィグを読み込む
-    with open(JOURNAL_READ_TMPL_FILE, 'r') as f:
+    with open(JOURNAL_READ_TMPL_FILE, 'r', encoding='utf-8-sig') as f:
         journal_tmpl = RWTemplate(f.read())
     config = configparser.ConfigParser()
-    config.read(JOURNAL_CONF_FILE)
+    config.read(JOURNAL_CONF_FILE, encoding='utf-8-sig')
     section = config['ReadTemplate']
     taskline_tmpl = RWTemplate(section['TASKLINE'])
     date_reg = Journal.date_regex(section['DATE'])
@@ -36,7 +39,7 @@ def read_journal(journal_file):
     times_delim = section['TIMES_DELIM']
 
     # ファイルからジャーナルテキストを読み込む
-    with open(journal_file, 'r') as f:
+    with open(journal_file, 'r', encoding='utf-8-sig') as f:
         journal = f.read()
 
     # ジャーナルからタスクトリリストを作成する
@@ -52,7 +55,7 @@ def read_journal(journal_file):
     tree = sum(tasktories[1:], tasktories[0]) if tasktories else None
 
     # ツリーを診断する
-    if Manager.overlap(tree):
+    if tree is not None and Manager.overlap(tree):
         raise JournalOverlapTimetableException()
 
     return tree, memo
@@ -61,10 +64,10 @@ def write_journal(date, tree, memo, infinite, journal_file):
     """タスクトリツリーをジャーナルに書き出す
     """
     # ジャーナル書き出し用のコンフィグを読み込む
-    with open(JOURNAL_WRITE_TMPL_FILE, 'r') as f:
+    with open(JOURNAL_WRITE_TMPL_FILE, 'r', encoding='utf-8-sig') as f:
         journal_tmpl = RWTemplate(f.read())
     config = configparser.ConfigParser()
-    config.read(JOURNAL_CONF_FILE)
+    config.read(JOURNAL_CONF_FILE, encoding='utf-8-sig')
     section = config['WriteTemplate']
     taskline_tmpl = RWTemplate(section['TASKLINE'])
     date_tmpl = RWTemplate(section['DATE'])
@@ -76,18 +79,18 @@ def write_journal(date, tree, memo, infinite, journal_file):
             journal_tmpl, taskline_tmpl, time_tmpl, times_delim, infinite)
 
     # ジャーナルテキストをファイルに書き出す
-    with open(journal_file, 'w') as f:
+    with open(journal_file, 'w', encoding='utf-8') as f:
         f.write(journal)
 
     # ジャーナル書き出し設定を読み込み設定にセットする
-    with open(JOURNAL_READ_TMPL_FILE, 'w') as f:
+    with open(JOURNAL_READ_TMPL_FILE, 'w', encoding='utf-8') as f:
         f.write(journal_tmpl.template)
     section = config['ReadTemplate']
-    section['TASKLINE'] = taskline_tmpl.template
-    section['DATE'] = date_tmpl.template
-    section['TIME'] = time_tmpl.template
+    section['TASKLINE'] = taskline_tmpl.template.replace('%', '%%')
+    section['DATE'] = date_tmpl.template.replace('%', '%%')
+    section['TIME'] = time_tmpl.template.replace('%', '%%')
     section['TIMES_DELIM'] = times_delim
-    with open(JOURNAL_CONF_FILE, 'w') as f:
+    with open(JOURNAL_CONF_FILE, 'w', encoding='utf-8') as f:
         config.write(f)
 
     return
@@ -127,7 +130,11 @@ def sametree(tree1, tree2):
     ・タスクトリのステータスの差異
     ・タスクトリの期日の差異
     """
+    if tree1 is None and tree2 is None: return True
+    if tree1 is None and tree2 is not None: return False
+    if tree1 is not None and tree2 is None: return False
     for t1, t2 in zip(tree1, tree2):
+        if t1.name != t2.name: return False
         if not same(t1, t2): return False
     return True
 
@@ -137,15 +144,20 @@ def taskpaths(dirpath, profile_name):
     paths = [os.path.join(dirpath, p).replace('\\', '/')
             for p in os.listdir(dirpath)]
     dirs = [p for p in paths if os.path.isdir(p)]
-    tasks = set([p for p in os.path.exists(os.path.join(p, profile_name))])
-    return set.union(tasks, *[dirtree(p, profile_name) for p in tasks])
+    tasks = set([p for p in dirs
+        if os.path.exists(os.path.join(p, profile_name))])
+    return set.union(tasks, *[taskpaths(p, profile_name) for p in tasks])
+
+def far(task):
+    return max([far(t) for t in task.children] + [task.deadline],
+            key=lambda x:-1 if x is None else x)
 
 def main():
     #====================
     # 設定読み込み
     #====================
-    configparser.ConfigParser()
-    config.read(MAIN_CONF_FILE)
+    config = configparser.ConfigParser()
+    config.read(MAIN_CONF_FILE, encoding='utf-8-sig')
     root = config['MAIN']['ROOT']
     profile_name = config['MAIN']['PROFILE_NAME']
     journal_file = config['JOURNAL']['JOURNAL_FILE']
@@ -159,6 +171,7 @@ def main():
             3 : ('Journal Updated', 'ファイルシステムに書き出し完了'),
             4 : ('File System Updated', 'ジャーナルに書き出し開始'),
             5 : ('File System Updated', 'ジャーナルに書き出し完了'),
+            6 : ('Journal Error', 'ジャーナル読み込み失敗')
             }
 
     #  TODO: レポート
@@ -175,7 +188,11 @@ def main():
     #====================
     # ルートが存在しなければ作成する
     if not os.path.isfile(os.path.join(root, profile_name)):
-        Manager.put(root, Tasktory('', 3650))
+        Manager.put(root, Tasktory('', today.toordinal() + 3650), profile_name)
+
+    # ジャーナルディレクトリが存在しなければ作成する
+    journal_dir = os.path.dirname(journal_file)
+    if not os.path.isdir(journal_dir): os.makedirs(journal_dir)
 
     # ファイルシステムからタスクツリーを読み出す
     tree = Manager.get_tree(root, profile_name)
@@ -200,20 +217,23 @@ def main():
 
     # トレイアイコンを作成する
     conn1, conn2 = Pipe()
-    tip = Process(target=TrayIcon, args=(conn2, ICON_PATH, popmsg_map, repo_map))
+    tip = Process(target=TrayIcon,
+            args=(conn2, ICON_PATH, popmsg_map, repo_map))
     tip.start()
-    hwnd = conn1.recv()
-    tipid = tip.pid
+    hwnd = conn1.recv()[1]
 
     # 監視プロセスを作成する
     jmp = Process(target=file_monitor, args=(journal_file, conn2))
     tmp = Process(target=dir_monitor, args=(root, conn2))
-    jmpid = jmp.pid
-    tmpid = tmp.pid
 
     # 監視を開始する
     jmp.start()
     tmp.start()
+
+    # プロセスIDを取得する
+    tipid = tip.pid
+    jmpid = jmp.pid
+    tmpid = tmp.pid
 
     #====================
     # ループ
@@ -229,6 +249,9 @@ def main():
                 #========================================
                 try:
                     new_tasks, memo = read_journal(journal_file)
+                except JournalReadException:
+                    win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 6, None)
+                    continue
                 except JournalOverlapTimetableException:
                     win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 0, None)
                     continue
@@ -240,6 +263,11 @@ def main():
                 # ジャーナルの内容をツリーにマージしてシステムに書き出す
                 tasks = new_tasks
                 new_tree = tree + tasks
+
+                # 期日補正
+                for node in new_tree:
+                    if node.deadline is None:
+                        node.deadline = far(node)
                 if Manager.overlap(new_tree):
                     win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 0, None)
                     continue
@@ -276,11 +304,16 @@ def main():
                 #========================================
                 # トレイアイコンからコマンドが実行された場合の処理
                 #========================================
+                if ret[1] == 1024:
+                    # 終了する
+                    break
                 pass
 
     finally:
         jmp.terminate()
         tmp.terminate()
+        conn1.close()
+        conn2.close()
 
     return
 

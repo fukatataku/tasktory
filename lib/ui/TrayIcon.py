@@ -44,7 +44,7 @@ class TrayIcon:
         win32gui.UpdateWindow(self.hwnd)
 
         # 親プロセスにウィンドウハンドルを渡す
-        self.conn.send(self.hwnd)
+        self.conn.send((os.getpid(), self.hwnd))
 
         # アイコンを作成する
         icon_flags = win32con.LR_LOADFROMFILE | win32con.LR_DEFAULTSIZE
@@ -71,6 +71,7 @@ class TrayIcon:
     def destroy(self, hwnd, msg, wparam, lparam):
         nid = (self.hwnd, 0)
         win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, nid)
+        self.conn.send((os.getpid(), 1024))
         win32gui.PostQuitMessage(0)
         return
 

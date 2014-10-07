@@ -16,7 +16,7 @@ class Manager:
         if task is None: return None
 
         # サブタスクトリを復元する
-        children = [Manager.get_tree(os.path.join(root, p), profile_name)
+        children = [Manager.get_tree(os.path.join(root, p), profile_name, True)
                 for p in os.listdir(root)]
         [task.append(c) for c in children if c is not None]
 
@@ -53,8 +53,9 @@ class Manager:
         # タスクトリのフルパスを取得する
         path = task.path(root)
 
-        # ディレクトリを作成する
-        os.makedirs(path)
+        # ディレクトリを無ければ作成する
+        if not os.path.isdir(path):
+            os.makedirs(path)
 
         # 保存用のオブジェクトを作成する
         tmp = task.copy()

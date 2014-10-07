@@ -5,6 +5,8 @@ import os, re, datetime, time
 from lib.common.RWTemplate import RWTemplate
 from lib.core.Tasktory import Tasktory
 
+from lib.common.exceptions import JournalReadException
+
 # 定数
 OPEN = Tasktory.OPEN
 WAIT = Tasktory.WAIT
@@ -13,7 +15,7 @@ CONST = Tasktory.CONST
 
 class Journal:
 
-    num_reg = re.compile(r'\d+$')
+    num_reg = re.compile(r'-?\d+$')
     head_reg = re.compile(r'^(%{?YEAR}?[^a-zA-Z0-9_%{}]+)')
     tail_reg = re.compile(r'([^a-zA-Z0-9_%{}]+%{?YEAR}?)$')
     delim_reg = re.compile(r'([^a-zA-Z0-9_%{}]+)')
@@ -112,14 +114,14 @@ class Journal:
         """
         # タスクラインをテンプレートに従ってパースする
         try: taskdict = taskline_tmpl.parse(taskline)
-        except ValueError: raise ValueError(taskline)
-
-        # 期日を解決する
-        deadline = Journal.deadline(date, taskdict['DEADLINE'], date_reg)
+        except ValueError: raise JournalReadException()
 
         # タスクトリリストを作成する
-        _ = [Tasktory(n, deadline, status)
+        _ = [Tasktory(n, None, status)
                 for n in taskdict['PATH'].rstrip('/').split('/')]
+
+        # 期日を解決する
+        _[-1].deadline = Journal.deadline(date, taskdict['DEADLINE'], date_reg)
 
         # 作業時間を解決する
         [_[-1].add_time(s,t) for s,t in Journal.timetable(
@@ -148,7 +150,7 @@ class Journal:
         if match1: return date.toordinal() + int(match1.group())
 
         match2 = date_reg.match(string)
-        if not match2: raise ValueError()
+        if not match2: raise JournalReadException()
 
         # 数値が２つ以上の場合は日付として解釈する
         day = int(match2.group('day'))
@@ -180,7 +182,7 @@ class Journal:
 
         # 作業時間正規表現にマッチングさせる
         matchs = [time_reg.match(p) for p in phrases if p]
-        if not all(matchs): raise ValueError()
+        if not all(matchs): raise JournalReadException()
         groupdicts = [m.groupdict() for m in matchs]
 
         # 年月日とマッチング結果からタイムスタンプを作成する

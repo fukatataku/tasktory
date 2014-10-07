@@ -1,16 +1,22 @@
 #!C:/python/python3.4/python
 # -*- encoding:utf-8 -*-
 
-import itertools
+import sys, os, datetime, time, configparser
+
+from lib.core.Tasktory import Tasktory
 
 if __name__ == '__main__':
-    print('OK')
-    t = [
-            ('NAME_1', 'VALUE_2'),
-            ('NAME_2', 'VALUE_2'),
-            ('NAME_3', 'VALUE_3'),
-            ('NAME_4', 'VALUE_4'),
-            ]
+    date = datetime.date.today().toordinal()
+    root = Tasktory('', date + 365)
 
-    d = dict((i,n) for i,(n,v) in enumerate(t))
-    print(d)
+    _root = Tasktory('', date + 365)
+    _proj = Tasktory('Project', date + 60)
+    _task = Tasktory('Task', date + 30)
+    _root.append(_proj)
+    _proj.append(_task)
+
+    t = root + _root
+
+    for node in t:
+        print(node.name, node.path(), [c.name for c in node.children],
+                'None' if node.parent is None else node.parent.name)

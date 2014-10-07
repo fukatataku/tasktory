@@ -5,6 +5,11 @@ class OverlapTimetableException(RuntimeError):
     """
     pass
 
+class JournalReadException(RuntimeError):
+    """ジャーナルの読み込みに失敗した場合の例外
+    """
+    pass
+
 class JournalOverlapTimetableException(RuntimeError):
     """ジャーナル中のタイムテーブルに重複がある場合の例外
     """

@@ -1,5 +1,5 @@
-#!python3
 #!C:/python/python3.4/python
+#!python3
 #-*- encoding:utf-8 -*-
 
 import sys, os, datetime, unittest
@@ -177,31 +177,31 @@ hogehoge
         self.check(tasks[0], '', stamp+365, None, OPEN, None, 'Root Tasktory')
         self.assertListEqual(tasks[0].children, [])
 
-        self.check(tasks[1], '', stamp+30, None, OPEN, None, '')
+        self.check(tasks[1], '', None, None, OPEN, None, '')
         self.check(tasks[1].children[0], 'Project', stamp+30,
                 tasks[1], OPEN, None, 'Project Tasktory')
         self.assertListEqual(tasks[1].children[0].children, [])
 
-        self.check(tasks[2], '', stamp+365, None, CONST, None, '')
-        self.check(tasks[2].children[0], 'Project', stamp+365, tasks[2], CONST, None, '')
+        self.check(tasks[2], '', None, None, CONST, None, '')
+        self.check(tasks[2].children[0], 'Project', None, tasks[2], CONST, None, '')
         self.check(tasks[2].children[0].children[0], 'ConstTask', stamp+365,
                 tasks[2].children[0], CONST, None, '')
 
-        self.check(tasks[3], '', stamp+3, None, OPEN, None, '')
+        self.check(tasks[3], '', None, None, OPEN, None, '')
         self.check_time(tasks[3])
-        self.check(tasks[3].children[0], 'Project', stamp+3, tasks[3], OPEN, None, '')
+        self.check(tasks[3].children[0], 'Project', None, tasks[3], OPEN, None, '')
         self.check_time(tasks[3].children[0])
         self.check(tasks[3].children[0].children[0], 'Task1', stamp+3,
                 tasks[3].children[0], OPEN, None, 'あいうえお\nかきくけこ\nさしすせそ')
         self.check_time(tasks[3].children[0].children[0], (tstamp, 3600))
 
-        self.check(tasks[4], '', stamp+3, None, OPEN, None, '')
-        self.check(tasks[4].children[0], 'Project', stamp+3, tasks[4], OPEN, None, '')
+        self.check(tasks[4], '', None, None, OPEN, None, '')
+        self.check(tasks[4].children[0], 'Project', None, tasks[4], OPEN, None, '')
         self.check(tasks[4].children[0].children[0], 'Task2', stamp+3,
                 tasks[4].children[0], OPEN, None, '')
 
-        self.check(tasks[5], '', stamp+0, None, CLOSE, None, '')
-        self.check(tasks[5].children[0], 'Project', stamp+0, tasks[5], CLOSE, None, '')
+        self.check(tasks[5], '', None, None, CLOSE, None, '')
+        self.check(tasks[5].children[0], 'Project', None, tasks[5], CLOSE, None, '')
         self.check(tasks[5].children[0].children[0], 'Task3', stamp+0,
                 tasks[5].children[0], CLOSE, None, '')
 
@@ -244,7 +244,7 @@ hogehoge
         tl = '/#123.あいうえお @5/1 [0:00-1:00]'
         t = Journal.tasktory(date, Tasktory.CONST, tl,
                 tl_tmpl, date_reg, time_reg, tm_delim)
-        self.check(t, '', datestamp + 30, None, CONST, None, '')
+        self.check(t, '', None, None, CONST, None, '')
         self.check_time(t)
         t1 = t.children[0]
         self.check(t1, '#123.あいうえお', datestamp + 30, t, CONST, None, '')

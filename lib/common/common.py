@@ -19,3 +19,21 @@ JOURNAL_WRITE_TMPL_FILE = os.path.join(TMPL_DIR, 'journal.write.tmpl')
 
 # トレイアイコン関連ファイル
 ICON_PATH = os.path.join(RSRC_DIR, 'tasktory.ico')
+
+# ポップアップメッセージ
+ERROR_JNL_READ = 0
+ERROR_JNL_DUPL = 1
+ERROR_JNL_OVLP = 2
+INFO_JNL_START = 3
+INFO_JNL_END = 4
+INFO_FS_START = 5
+INFO_FS_END = 6
+POPUP_MSG = {
+        ERROR_JNL_READ : ('ERROR', 'ジャーナルの読み込みに失敗しました'),
+        ERROR_JNL_DUPL : ('ERROR', '同名のタスクが記載されています'),
+        ERROR_JNL_OVLP : ('ERROR', '作業時間が重複しています'),
+        INFO_JNL_START : ('INFO', 'ジャーナルへの書き出しを開始します'),
+        INFO_JNL_END : ('INFO', 'ジャーナルへの書き出しが完了しました'),
+        INFO_FS_START : ('INFO', 'ファイルシステムへの書き出しを開始します'),
+        INFO_FS_END : ('INFO', 'ファイルシステムへの書き出しが完了しました'),
+        }
