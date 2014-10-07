@@ -2,7 +2,7 @@
 #!python3
 # -*- encoding:utf-8 -*-
 
-import sys, os, datetime, time, configparser
+import os, datetime, time, configparser
 from multiprocessing import Process, Pipe
 
 import win32api
@@ -14,18 +14,11 @@ from lib.ui.TrayIcon import TrayIcon
 from lib.monitor.monitor import file_monitor, dir_monitor
 from lib.common.RWTemplate import RWTemplate
 
-from lib.common.common import MAIN_CONF_FILE
-from lib.common.common import JOURNAL_CONF_FILE
-from lib.common.common import JOURNAL_READ_TMPL_FILE
-from lib.common.common import JOURNAL_WRITE_TMPL_FILE
-from lib.common.common import ICON_PATH
-
-from lib.common.exceptions import JournalReadException
-from lib.common.exceptions import JournalOverlapTimetableException
-from lib.common.exceptions import JournalDuplicateTasktoryException
+from lib.common.common import *
+from lib.common.exceptions import *
 
 def read_journal(journal_file):
-    """ジャーナルを読みでタスクトリツリーを取得する
+    """ジャーナルを読み込んでタスクトリツリーを取得する
     """
     # ジャーナル読み込み用のコンフィグを読み込む
     with open(JOURNAL_READ_TMPL_FILE, 'r', encoding='utf-8-sig') as f:
@@ -163,17 +156,6 @@ def main():
     journal_file = config['JOURNAL']['JOURNAL_FILE']
     infinite = int(config['JOURNAL']['INFINITE'])
 
-    # TODO: ポップアップメッセージ
-    popmsg_map = {
-            0 : ('Journal Error', '作業時間の重複'),
-            1 : ('Journal Error', '同名のタスクトリ'),
-            2 : ('Journal Updated', 'ファイルシステムに書き出し開始'),
-            3 : ('Journal Updated', 'ファイルシステムに書き出し完了'),
-            4 : ('File System Updated', 'ジャーナルに書き出し開始'),
-            5 : ('File System Updated', 'ジャーナルに書き出し完了'),
-            6 : ('Journal Error', 'ジャーナル読み込み失敗')
-            }
-
     #  TODO: レポート
     repo_map = {
             0 : 'all',
@@ -198,9 +180,11 @@ def main():
     tree = Manager.get_tree(root, profile_name)
 
     # ジャーナルからmemoを取得する
-    # TODO: 例外処理
-    memo = read_journal(journal_file)[1]\
+    try: memo = read_journal(journal_file)[1]\
             if os.path.isfile(journal_file) else ''
+    except:
+        # TODO
+        return
 
     # 新しいジャーナルを書き出す
     write_journal(today, tree, memo, infinite, journal_file)
@@ -209,8 +193,10 @@ def main():
     # 準備
     #====================
     # 新しいジャーナルを読み込む
-    # TODO: 例外処理
-    tasks = read_journal(journal_file)[0]
+    try: jtasks = read_journal(journal_file)[0]
+    except:
+        # TODO
+        return
 
     # タスクトリのパスリスト
     paths = taskpaths(root, profile_name)
@@ -218,7 +204,7 @@ def main():
     # トレイアイコンを作成する
     conn1, conn2 = Pipe()
     tip = Process(target=TrayIcon,
-            args=(conn2, ICON_PATH, popmsg_map, repo_map))
+            args=(conn2, ICON_PATH, POPMSG_MAP, repo_map))
     tip.start()
     hwnd = conn1.recv()[1]
 
@@ -234,71 +220,101 @@ def main():
     tipid = tip.pid
     jmpid = jmp.pid
     tmpid = tmp.pid
+    ownid = os.getpid()
 
     #====================
     # ループ
     #====================
     try:
+        ignore = False
         while True:
             # 通知が来るまでブロック
             ret = conn1.recv()
+
+            # 自身による更新を無視する
+            if ret[0] == ownid: ignore = True if ret[1] == 0 else False
+            if ignore: continue
 
             if ret[0] == jmpid:
                 #========================================
                 # ジャーナルが更新された場合の処理
                 #========================================
+                # ジャーナルを読み込む
                 try:
-                    new_tasks, memo = read_journal(journal_file)
+                    new_jtasks, memo = read_journal(journal_file)
                 except JournalReadException:
-                    win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 6, None)
+                    # 読み込み失敗
+                    win32api.SendMessage(
+                            hwnd, TrayIcon.MSG_POPUP, ERROR_JNL_READ, None)
                     continue
                 except JournalOverlapTimetableException:
-                    win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 0, None)
+                    # 作業時間に重複あり
+                    win32api.SendMessage(
+                            hwnd, TrayIcon.MSG_POPUP, ERROR_JNL_OVLP, None)
                     continue
                 except JournalDuplicateTasktoryException:
-                    win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 1, None)
+                    # タスクトリに重複あり
+                    win32api.SendMessage(
+                            hwnd, TrayIcon.MSG_POPUP, ERROR_JNL_DUPL, None)
                     continue
-                if sametree(tasks, new_tasks): continue
 
-                # ジャーナルの内容をツリーにマージしてシステムに書き出す
-                tasks = new_tasks
-                new_tree = tree + tasks
+                # タスクの状態に変化が無ければ無視する
+                if sametree(jtasks, new_jtasks): continue
 
-                # 期日補正
+                # ジャーナルの内容をツリーにマージする
+                jtasks = new_jtasks
+                new_tree = tree + jtasks
+
+                # ツリー中の未設定の期日を補完する
                 for node in new_tree:
                     if node.deadline is None:
                         node.deadline = far(node)
+
+                # 作業時間の重複を確認する（非必須）
                 if Manager.overlap(new_tree):
-                    win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 0, None)
+                    win32api.SendMessage(
+                            hwnd, TrayIcon.MSG_POPUP, ERROR_JNL_OVLP, None)
                     continue
-                tree = new_tree
 
                 # ファイルシステムへの書き出し開始を通知する
-                win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 2, None)
+                conn2.send((ownid, 0))
+                win32api.SendMessage(
+                        hwnd, TrayIcon.MSG_POPUP, INFO_FS_START, None)
 
+                # ファイルシステムに書き出す
+                tree = new_tree
                 for node in tree:
                     Manager.put(root, node, profile_name)
 
                 # ファイルシステムへの書き出し完了を通知する
-                win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 3, None)
+                win32api.SendMessage(
+                        hwnd, TrayIcon.MSG_POPUP, INFO_FS_END, None)
+                conn2.send((ownid, 1))
 
             elif ret[0] == tmpid:
                 #========================================
                 # ファイルシステムが更新された場合の処理
                 #========================================
+                # 現在のファイルシステムの状態を読み込む
                 new_paths = taskpaths(root, profile_name)
+
+                # 前回と比べて変化が無ければ無視する
                 if paths == new_paths: continue
+
+                # ジャーナルへの書き出し開始を通知する
+                conn2.send((ownid, 0))
+                win32api.SendMessage(
+                        hwnd, TrayIcon.MSG_POPUP, INFO_JNL_START, None)
 
                 # ファイルシステムからツリーを読み出してジャーナルに書き出す
                 paths = new_paths
-                # ジャーナルへの書き出し開始を通知する
-                win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 4, None)
-
                 tree = Manager.get_tree(root, profile_name)
                 write_journal(today, tree, memo, infinite, journal_file)
 
                 # ジャーナルへの書き出し完了を通知する
-                win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, 5, None)
+                win32api.SendMessage(
+                        hwnd, TrayIcon.MSG_POPUP, INFO_JNL_END, None)
+                conn2.send((ownid, 1))
 
             elif ret[0] == tipid:
                 #========================================

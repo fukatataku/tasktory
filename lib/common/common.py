@@ -28,7 +28,7 @@ INFO_JNL_START = 3
 INFO_JNL_END = 4
 INFO_FS_START = 5
 INFO_FS_END = 6
-POPUP_MSG = {
+POPMSG_MAP = {
         ERROR_JNL_READ : ('ERROR', 'ジャーナルの読み込みに失敗しました'),
         ERROR_JNL_DUPL : ('ERROR', '同名のタスクが記載されています'),
         ERROR_JNL_OVLP : ('ERROR', '作業時間が重複しています'),
