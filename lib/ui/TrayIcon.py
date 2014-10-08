@@ -57,10 +57,16 @@ class TrayIcon:
         win32gui.Shell_NotifyIcon(win32gui.NIM_ADD, nid)
 
         # TODO: ポップアップメニューを作成する
-        self.menu = win32gui.CreatePopupMenu()
+        self.sub_menu = win32gui.CreatePopupMenu()
         for key, value in sorted(self.repo_map.items(), key=lambda d:d[0]):
-            win32gui.AppendMenu(self.menu, win32con.MF_STRING, key, value)
+            win32gui.AppendMenu(self.sub_menu, win32con.MF_STRING, key, value)
+
+        self.menu = win32gui.CreatePopupMenu()
+        win32gui.AppendMenu(self.menu, win32con.MF_POPUP,
+                self.sub_menu, 'Report')
+        win32gui.AppendMenu(self.menu, win32con.MF_SEPARATOR, 0, '')
         win32gui.AppendMenu(self.menu, win32con.MF_STRING, 1024, 'Quit')
+
 
         # メッセージループに入る
         win32gui.PumpMessages()
@@ -113,8 +119,8 @@ class TrayIcon:
     def show_menu(self):
         pos = win32gui.GetCursorPos()
         win32gui.SetForegroundWindow(self.hwnd)
-        win32gui.TrackPopupMenu(self.menu, win32con.TPM_LEFTALIGN, pos[0], pos[1],
-                0, self.hwnd, None)
+        win32gui.TrackPopupMenu(self.menu, win32con.TPM_LEFTALIGN,
+                pos[0], pos[1], 0, self.hwnd, None)
         win32gui.PostMessage(self.hwnd, win32con.WM_NULL, 0, 0)
         return 1
 
@@ -123,7 +129,7 @@ if __name__ == '__main__':
     import os, time
 
     # アイコンのパス
-    icon_path = 'N:/git/tasktory/resource/py.ico'
+    icon_path = 'C:/home/fukata/git/tasktory/resource/tasktory.ico'
     # ポップアップメッセージ
     popmsg_map = {
             0 : ('ジャーナルエラー', '作業時間の重複'),
@@ -150,10 +156,6 @@ if __name__ == '__main__':
     print(ret)
     if ret[0] == p.pid and ret[1] in repo_map.keys():
         print('Command: {0} {1}'.format(ret[1], repo_map[ret[1]]))
-
-    for key in popmsg_map.keys():
-        time.sleep(5)
-        win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, key, None)
 
     p.join()
     conn1.close()
