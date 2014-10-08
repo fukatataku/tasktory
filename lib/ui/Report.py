@@ -5,9 +5,12 @@ import lib.ui.reports
 class Report:
 
     @staticmethod
-    def report_all(date, tasktory, *args, **kwargs):
-        """lib.ui.reports.*.report()を実行する
+    def report_map():
         """
-        return [(m.__name__.split('.')[-1],
-            m.report(date, tasktory, *args, **kwargs))
-            for m in lib.ui.reports.__modules__() if 'report' in dir(m)]
+        """
+        reports = lib.ui.reports.__reports__()
+        repo_map = {}
+        for i, m in enumerate(reports):
+            # key=0は全レポート出力のために使わなずに取っておく
+            repo_map[i+1] = (m.REPORT_NAME, m.report)
+        return repo_map

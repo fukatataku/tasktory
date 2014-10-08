@@ -28,6 +28,9 @@ INFO_JNL_START = 3
 INFO_JNL_END = 4
 INFO_FS_START = 5
 INFO_FS_END = 6
+INFO_REPO_START = 7
+INFO_REPO_END = 8
+ERROR_REPO_WRITE = 9
 POPMSG_MAP = {
         ERROR_JNL_READ : ('ERROR', 'ジャーナルの読み込みに失敗しました'),
         ERROR_JNL_DUPL : ('ERROR', '同名のタスクが記載されています'),
@@ -36,4 +39,7 @@ POPMSG_MAP = {
         INFO_JNL_END : ('INFO', 'ジャーナルへの書き出しが完了しました'),
         INFO_FS_START : ('INFO', 'ファイルシステムへの書き出しを開始します'),
         INFO_FS_END : ('INFO', 'ファイルシステムへの書き出しが完了しました'),
+        INFO_REPO_START : ('INFO', 'レポートの書き出しを開始します'),
+        INFO_REPO_END : ('INFO', 'レポートの書き出しが完了しました'),
+        ERROR_REPO_WRITE : ('ERROR', 'レポートの書き出しに失敗しました'),
         }

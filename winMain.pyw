@@ -10,12 +10,16 @@ import win32api
 from lib.core.Tasktory import Tasktory
 from lib.core.Manager import Manager
 from lib.ui.Journal import Journal
+from lib.ui.Report import Report
 from lib.ui.TrayIcon import TrayIcon
 from lib.monitor.monitor import file_monitor, dir_monitor
 from lib.common.RWTemplate import RWTemplate
 
 from lib.common.common import *
 from lib.common.exceptions import *
+
+BLOCK = 0
+UNBLOCK = 1
 
 def read_journal(journal_file):
     """ジャーナルを読み込んでタスクトリツリーを取得する
@@ -88,62 +92,165 @@ def write_journal(date, tree, memo, infinite, journal_file):
 
     return
 
-def same(task1, task2):
-    """２つのタスクトリ間に差分があるかどうかを調べる。
-    差分があればFalse、無ければTrueを返す。
-    差分として認める差異は
-    ・タイムテーブルの差異
-    ・ステータスの差異
-    ・期日の差異
+def write_report(date, tree, repo_name, repo_func, repo_dir, repo_name_tmpl):
+    # レポートテキストを作成する
+    repo_text = repo_func(date, tree)
+
+    # レポートファイルパスを作成する
+    repo_filename = repo_name_tmpl.substitute({
+        'YEAR' : str(date.year),
+        'MONTH' : str(date.month),
+        'DAY' : str(date.day),
+        })
+    repo_file = os.path.join(repo_dir, repo_name, repo_filename)
+
+    # ディレクトリが無ければ作成する
+    if not os.path.isdir(os.path.join(repo_dir, repo_name)):
+        os.makedirs(os.path.join(repo_dir, repo_name))
+
+    # ファイルに書き出す
+    with open(repo_file, 'w') as f:
+        f.write(repo_text)
+    return
+
+def initialize(date, root, profile_name, journal_file):
+    """タスクトリシステムを初期化する
     """
-    # 名前をチェックする
-    if task1.name != task2.name:
-        raise ValueError()
+    # ルートが存在しなければ、作成する
+    if not os.path.isfile(os.path.join(root, profile_name)):
+        Manager.put(root, Tasktory('', date.toordinal() + 3650), profile_name)
 
-    # 作業時間の差異をチェックする
-    if set(task1.timetable) != set(task2.timetable):
-        return False
+    # ジャーナルディレクトリが存在しなければ、作成する
+    journal_dir = os.path.dirname(journal_file)
+    if not os.path.isdir(journal_dir): os.makedirs(journal_dir)
 
-    # ステータスの差異をチェックする
-    if task1.status != task2.status:
-        return False
+    return
 
-    # 期日の差異をチェックする
-    if task1.deadline != task2.deadline:
-        return False
-
-    return True
-
-def sametree(tree1, tree2):
-    """２つのタスクツリーの間に差分があるかどうかを調べる。
-    差分があればFalse、無ければTrueを返す。
-    差分として認める差異は
-    ・タスクトリの有無
-    ・タスクトリの作業時間の差異
-    ・タスクトリのステータスの差異
-    ・タスクトリの期日の差異
+def prepare(date, root, profile_name, journal_file, infinite):
+    """ループに入る前の準備
     """
-    if tree1 is None and tree2 is None: return True
-    if tree1 is None and tree2 is not None: return False
-    if tree1 is not None and tree2 is None: return False
-    for t1, t2 in zip(tree1, tree2):
-        if t1.name != t2.name: return False
-        if not same(t1, t2): return False
-    return True
+    # ジャーナルが存在するなら、memoを取り出す
+    memo = read_journal(journal_file)[1]\
+            if os.path.isfile(journal_file) else ''
 
-def taskpaths(dirpath, profile_name):
-    """指定したディレクトリ以下に含まれるタスクトリのパスのリストを取得する
+    # ファイルシステムからツリーを読み込む
+    tree = Manager.get_tree(root, profile_name)
+
+    # 新しいジャーナルを書き出す
+    write_journal(date, tree, memo, infinite, journal_file)
+
+    # 新しいジャーナルを読み込む
+    jtree, memo = read_journal(journal_file)
+
+    # ファイルシステムの状態を読み込む
+    paths = Manager.listtask(root, profile_name)
+
+    return jtree, paths, memo
+
+def prepare_process(root, journal_file, repo_map):
+    # トレイアイコン
+    conn1, conn2 = Pipe()
+    tray_icon = Process(target=TrayIcon,
+            args=(conn2, ICON_PATH, POPMSG_MAP, repo_map))
+    tray_icon.start()
+    hwnd = conn1.recv()[1]
+
+    # 監視プロセス
+    jnl_monitor = Process(target=file_monitor, args=(journal_file, conn2))
+    fs_monitor = Process(target=dir_monitor, args=(root, conn2))
+
+    # プロセス開始
+    jnl_monitor.start()
+    fs_monitor.start()
+
+    return tray_icon, jnl_monitor, fs_monitor, hwnd, conn1, conn2
+
+def journal_updated(org_jtree, root, profile_name, journal_file, hwnd):
+    # ジャーナルを読み込む
+    new_jtree, memo = read_journal(journal_file)
+
+    # タスクの状態に変化が無ければ無視する
+    if Manager.same_tree(org_jtree, new_jtree):
+        return org_jtree, memo
+
+    # ファイルシステムからツリーを読み出す
+    tree = Manager.get_tree(root, profile_name)
+
+    # マージする
+    new_tree = tree + new_jtree
+
+    # 作業時間の重複の有無を確認する（非必須）
+    if Manager.overlap(new_tree):
+        pass
+
+    # 未設定期日を補完する
+    for node in new_tree:
+        if node.deadline is None:
+            node.deadline = max([n.deadline for n in node
+                if n.deadline is not None])
+
+    # ファイルシステムへの書き出し開始を通知する
+    message(hwnd, INFO_FS_START)
+
+    # ファイルシステムに書き出す
+    for node in new_tree: Manager.put(root, node, profile_name)
+
+    # ファイルシステムへの書き出し完了を通知する
+    message(hwnd, INFO_FS_END)
+
+    return new_jtree, memo
+
+def filesystem_updated(org_paths, date, root, profile_name, journal_file,
+        memo, infinite, hwnd):
+    # 現在のファイルシステムの状態を読み込む
+    new_paths = Manager.listtask(root, profile_name)
+
+    # ファイルシステムの状態に変化が無ければ無視する
+    if org_paths == new_paths:
+        return org_paths
+
+    # ファイルシステムからツリーを読み込む
+    tree = Manager.get_tree(root, profile_name)
+
+    # ジャーナルへの書き出し開始を通知する
+    message(hwnd, INFO_JNL_START)
+
+    # ジャーナルに書き出す
+    write_journal(date, tree, memo, infinite, journal_file)
+
+    # ジャーナルへの書き出し完了を通知する
+    message(hwnd, INFO_JNL_END)
+
+    return new_paths
+
+def trayicon_command(par, date, root, profile_name,
+        repo_map, repo_dir, repo_name_tmpl, hwnd):
+    # レポート書き出し開始を通知する
+    message(hwnd, INFO_REPO_START)
+
+    # ファイルシステムからタスクツリーを読み込む
+    tree = Manager.get_tree(root, profile_name)
+
+    if par == 0:
+        # 全てのレポートを出力する
+        for k,v in repo_map.items():
+            write_report(date, tree, v[0], v[1], repo_dir, repo_name_tmpl)
+    else:
+        # 指定されたレポートを出力する
+        repo_name = repo_map[par][0]
+        repo_func = repo_map[par][1]
+        write_report(date, tree,
+                repo_name, repo_func, repo_dir, repo_name_tmpl)
+
+    # レポート書き出し完了を通知する
+    message(hwnd, INFO_REPO_END)
+    return
+
+def message(hwnd, msg):
+    """ポップアップメッセージを出力する
     """
-    paths = [os.path.join(dirpath, p).replace('\\', '/')
-            for p in os.listdir(dirpath)]
-    dirs = [p for p in paths if os.path.isdir(p)]
-    tasks = set([p for p in dirs
-        if os.path.exists(os.path.join(p, profile_name))])
-    return set.union(tasks, *[taskpaths(p, profile_name) for p in tasks])
-
-def far(task):
-    return max([far(t) for t in task.children] + [task.deadline],
-            key=lambda x:-1 if x is None else x)
+    win32api.SendMessage(hwnd, TrayIcon.MSG_POPUP, msg, None)
+    return
 
 def main():
     #====================
@@ -155,12 +262,13 @@ def main():
     profile_name = config['MAIN']['PROFILE_NAME']
     journal_file = config['JOURNAL']['JOURNAL_FILE']
     infinite = int(config['JOURNAL']['INFINITE'])
+    report_dir = config['REPORT']['REPORT_DIR']
+    report_name_tmpl = RWTemplate(config['REPORT']['REPORT_NAME'])
 
     #  TODO: レポート
-    repo_map = {
-            0 : 'all',
-            1 : 'sample',
-            }
+    repo_map = Report.report_map()
+    repo_name_map = dict((k, v[0]) for k,v in repo_map.items())
+    repo_name_map[0] = 'ALL'
 
     # 日付
     today = datetime.date.today()
@@ -168,166 +276,89 @@ def main():
     #====================
     # 初期化
     #====================
-    # ルートが存在しなければ作成する
-    if not os.path.isfile(os.path.join(root, profile_name)):
-        Manager.put(root, Tasktory('', today.toordinal() + 3650), profile_name)
-
-    # ジャーナルディレクトリが存在しなければ作成する
-    journal_dir = os.path.dirname(journal_file)
-    if not os.path.isdir(journal_dir): os.makedirs(journal_dir)
-
-    # ファイルシステムからタスクツリーを読み出す
-    tree = Manager.get_tree(root, profile_name)
-
-    # ジャーナルからmemoを取得する
-    try: memo = read_journal(journal_file)[1]\
-            if os.path.isfile(journal_file) else ''
-    except:
-        # TODO
-        return
-
-    # 新しいジャーナルを書き出す
-    write_journal(today, tree, memo, infinite, journal_file)
+    initialize(today, root, profile_name, journal_file)
 
     #====================
     # 準備
     #====================
-    # 新しいジャーナルを読み込む
-    try: jtasks = read_journal(journal_file)[0]
-    except:
-        # TODO
-        return
+    jtree, paths, memo = prepare(
+            today, root, profile_name, journal_file, infinite)
 
-    # タスクトリのパスリスト
-    paths = taskpaths(root, profile_name)
-
-    # トレイアイコンを作成する
-    conn1, conn2 = Pipe()
-    tip = Process(target=TrayIcon,
-            args=(conn2, ICON_PATH, POPMSG_MAP, repo_map))
-    tip.start()
-    hwnd = conn1.recv()[1]
-
-    # 監視プロセスを作成する
-    jmp = Process(target=file_monitor, args=(journal_file, conn2))
-    tmp = Process(target=dir_monitor, args=(root, conn2))
-
-    # 監視を開始する
-    jmp.start()
-    tmp.start()
-
-    # プロセスIDを取得する
-    tipid = tip.pid
-    jmpid = jmp.pid
-    tmpid = tmp.pid
+    #====================
+    # サブプロセス
+    #====================
+    tray_icon, jnl_monitor, fs_monitor, hwnd, conn1, conn2 = prepare_process(
+            root, journal_file, repo_name_map)
     ownid = os.getpid()
 
     #====================
     # ループ
     #====================
     try:
-        ignore = False
+        ignore = UNBLOCK
         while True:
             # 通知が来るまでブロック
             ret = conn1.recv()
 
             # 自身による更新を無視する
-            if ret[0] == ownid: ignore = True if ret[1] == 0 else False
-            if ignore: continue
+            if ret[0] == ownid:
+                ignore = ret[1]
+                continue
+            if ignore == BLOCK:
+                continue
 
-            if ret[0] == jmpid:
+            if ret[0] == jnl_monitor.pid:
                 #========================================
                 # ジャーナルが更新された場合の処理
                 #========================================
-                # ジャーナルを読み込む
+                conn2.send((ownid, BLOCK))
                 try:
-                    new_jtasks, memo = read_journal(journal_file)
+                    jtree, memo = journal_updated(
+                            jtree, root, profile_name, journal_file, hwnd)
                 except JournalReadException:
                     # 読み込み失敗
-                    win32api.SendMessage(
-                            hwnd, TrayIcon.MSG_POPUP, ERROR_JNL_READ, None)
+                    message(hwnd, ERROR_JNL_READ)
                     continue
                 except JournalOverlapTimetableException:
                     # 作業時間に重複あり
-                    win32api.SendMessage(
-                            hwnd, TrayIcon.MSG_POPUP, ERROR_JNL_OVLP, None)
+                    message(hwnd, ERROR_JNL_OVLP)
                     continue
                 except JournalDuplicateTasktoryException:
                     # タスクトリに重複あり
-                    win32api.SendMessage(
-                            hwnd, TrayIcon.MSG_POPUP, ERROR_JNL_DUPL, None)
+                    message(hwnd, ERROR_JNL_DUPL)
                     continue
+                finally:
+                    conn2.send((ownid, UNBLOCK))
 
-                # タスクの状態に変化が無ければ無視する
-                if sametree(jtasks, new_jtasks): continue
-
-                # ジャーナルの内容をツリーにマージする
-                jtasks = new_jtasks
-                new_tree = tree + jtasks
-
-                # ツリー中の未設定の期日を補完する
-                for node in new_tree:
-                    if node.deadline is None:
-                        node.deadline = far(node)
-
-                # 作業時間の重複を確認する（非必須）
-                if Manager.overlap(new_tree):
-                    win32api.SendMessage(
-                            hwnd, TrayIcon.MSG_POPUP, ERROR_JNL_OVLP, None)
-                    continue
-
-                # ファイルシステムへの書き出し開始を通知する
-                conn2.send((ownid, 0))
-                win32api.SendMessage(
-                        hwnd, TrayIcon.MSG_POPUP, INFO_FS_START, None)
-
-                # ファイルシステムに書き出す
-                tree = new_tree
-                for node in tree:
-                    Manager.put(root, node, profile_name)
-
-                # ファイルシステムへの書き出し完了を通知する
-                win32api.SendMessage(
-                        hwnd, TrayIcon.MSG_POPUP, INFO_FS_END, None)
-                conn2.send((ownid, 1))
-
-            elif ret[0] == tmpid:
+            elif ret[0] == fs_monitor.pid:
                 #========================================
                 # ファイルシステムが更新された場合の処理
                 #========================================
-                # 現在のファイルシステムの状態を読み込む
-                new_paths = taskpaths(root, profile_name)
+                conn2.send((ownid, BLOCK))
+                try:
+                    paths = filesystem_updated(
+                            paths, today, root, profile_name, journal_file,
+                            memo, infinite, hwnd)
+                finally:
+                    conn2.send((ownid, UNBLOCK))
 
-                # 前回と比べて変化が無ければ無視する
-                if paths == new_paths: continue
-
-                # ジャーナルへの書き出し開始を通知する
-                conn2.send((ownid, 0))
-                win32api.SendMessage(
-                        hwnd, TrayIcon.MSG_POPUP, INFO_JNL_START, None)
-
-                # ファイルシステムからツリーを読み出してジャーナルに書き出す
-                paths = new_paths
-                tree = Manager.get_tree(root, profile_name)
-                write_journal(today, tree, memo, infinite, journal_file)
-
-                # ジャーナルへの書き出し完了を通知する
-                win32api.SendMessage(
-                        hwnd, TrayIcon.MSG_POPUP, INFO_JNL_END, None)
-                conn2.send((ownid, 1))
-
-            elif ret[0] == tipid:
+            elif ret[0] == tray_icon.pid:
                 #========================================
-                # トレイアイコンからコマンドが実行された場合の処理
+                # コマンドが実行された場合の処理
                 #========================================
-                if ret[1] == 1024:
-                    # 終了する
-                    break
-                pass
+                # 終了コマンド
+                if ret[1] == 1024: break
+
+                # 他のコマンド
+                try:
+                    trayicon_command(ret[1], today, root, profile_name,
+                            repo_map, report_dir, report_name_tmpl, hwnd)
+                except:
+                    message(hwnd, ERROR_REPO_WRITE)
 
     finally:
-        jmp.terminate()
-        tmp.terminate()
+        jnl_monitor.terminate()
+        fs_monitor.terminate()
         conn1.close()
         conn2.close()
 

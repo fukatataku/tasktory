@@ -67,6 +67,21 @@ class Manager:
         return
 
     #==========================================================================
+    # ディレクトリ参照メソッド
+    #==========================================================================
+    @staticmethod
+    def listtask(dirpath, profile_name):
+        """指定したディレクトリ以下に含まれるタスクトリのパスのリストを取得する
+        """
+        paths = [os.path.join(dirpath, p).replace('\\', '/')
+                for p in os.listdir(dirpath)]
+        dirs = [p for p in paths if os.path.isdir(p)]
+        tasks = set([p for p in dirs
+            if os.path.exists(os.path.join(p, profile_name))])
+        return set.union(tasks, *[Manager.listtask(p, profile_name)
+            for p in tasks])
+
+    #==========================================================================
     # タスクトリツリー診断メソッド
     #==========================================================================
     @staticmethod
@@ -83,3 +98,27 @@ class Manager:
             if s < last: return True
             last = s + t
         return False
+
+    @staticmethod
+    def same_tree(tree1, tree2):
+        """２つのタスクツリーの間に差分があるかどうかを調べる
+        差分が無ければTrue、有ればFalseを返す
+        """
+        if tree1 is tree2: return True
+        if tree1 is None or tree2 is None: return False
+        for node1, node2 in zip(tree1, tree2):
+            if not Manager.same(node1, node2): return False
+        return True
+
+    @staticmethod
+    def same(task1, task2):
+        """２つのタスクトリの間に差分があるかどうかを調べる
+        差分が無ければTrue、有ればFalseを返す
+        """
+        if task1.name != task2.name: return False
+        if set(task1.timetable) != set(task2.timetable): return False
+        if task1.status != task2.status: return False
+        if task1.deadline != task2.deadline: return False
+        if task1.category != task2.category: return False
+        if task1.comments != task2.comments: return False
+        return True
