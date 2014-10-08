@@ -1,4 +1,4 @@
-#!C:/python/python3.4/python
+#!C:/python/python3.4/pythonw
 #!python3
 # -*- encoding:utf-8 -*-
 
