@@ -98,7 +98,7 @@ class Tasktory(object):
         deadline = old.deadline if new.deadline is None else new.deadline
 
         # 新しいタスクトリを作成する
-        # 名前、期日、ステータスは新しい方を使用する
+        # 名前、ステータスは新しい方を使用する
         ret = Tasktory(new.name, deadline, new.status)
 
         # IDはselfを使用する
