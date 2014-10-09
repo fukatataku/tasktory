@@ -1,5 +1,4 @@
 #!C:/python/python3.4/pythonw
-#!python3
 # -*- encoding:utf-8 -*-
 
 import os, datetime, time, configparser
@@ -147,11 +146,11 @@ def prepare(date, root, profile_name, journal_file, infinite):
 
     return jtree, paths, memo
 
-def prepare_process(root, journal_file, repo_map):
+def prepare_process(root, journal_file, commands):
     # トレイアイコン
     conn1, conn2 = Pipe()
     tray_icon = Process(target=TrayIcon,
-            args=(conn2, ICON_PATH, POPMSG_MAP, repo_map))
+            args=(conn2, ICON_PATH, POPMSG_MAP, commands))
     tray_icon.start()
     hwnd = conn1.recv()[1]
 
@@ -275,10 +274,50 @@ def main():
     report_dir = config['REPORT']['REPORT_DIR']
     report_name_tmpl = RWTemplate(config['REPORT']['REPORT_NAME'])
 
-    #  TODO: レポート
-    repo_map = Report.report_map()
-    repo_name_map = dict((k, v[0]) for k,v in repo_map.items())
-    repo_name_map[0] = 'ALL'
+    #===================================
+    # TODO: トレイアイコンコマンド
+    #===================================
+    com_map = {}
+    commands = []
+    def gen():
+        n = 0
+        while True:
+            yield n
+            n += 1
+        return
+
+    # 同期コマンド
+    Id = gen()
+    com_map[Id] = sync
+    com_menu.append('Sync', Id))
+
+    # レポートコマンド
+
+    # セパレータ
+    com_menu.append((None, None))
+
+    # 終了コマンド
+    Id = gen()
+    com_map[Id] = quit
+    com_menu.append('Quit', Id)
+
+    com_map = {
+            0 : sync, args,
+            1 : report,
+            2 : report,
+            3 : report,
+            4 : quit,
+            }
+    commands = [
+            ('Sync', 0),
+            ('Report', [
+                ('ALL', 1),
+                ('チーム週報', 2),
+                ('チーム月報', 3),
+                ]),
+            (None, None),
+            ('Quit', 4),
+            ]
 
     # 日付
     today = datetime.date.today()
@@ -298,7 +337,7 @@ def main():
     # サブプロセス
     #====================
     tray_icon, jnl_monitor, fs_monitor, hwnd, conn1, conn2 = prepare_process(
-            root, journal_file, repo_name_map)
+            root, journal_file, commands)
     ownid = os.getpid()
 
     #====================

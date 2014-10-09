@@ -8,12 +8,13 @@ class TrayIcon:
 
     MSG_NOTIFY = win32con.WM_USER + 20
     MSG_POPUP = win32con.WM_USER + 21
+    MSG_DESTROY = win32con.WM_USER + 22
 
-    def __init__(self, conn, icon_path, popmsg_map, repo_map):
+    def __init__(self, conn, icon_path, popmsg_map, com_menu):
         # 引数をメンバ変数に格納する
         self.conn = conn
         self.popmsg_map = popmsg_map
-        self.repo_map = repo_map
+        self.com_menu = com_menu
 
         # ウィンドウプロシージャを作成する
         message_map = {
@@ -21,6 +22,7 @@ class TrayIcon:
                 win32con.WM_COMMAND: self.command,
                 self.MSG_NOTIFY: self.notify,
                 self.MSG_POPUP: self.popup,
+                self.MSG_DESTROY: self.start_destroy,
                 }
 
         # ウィンドウクラスを作成する
@@ -56,41 +58,26 @@ class TrayIcon:
         nid = (self.hwnd, 0, flags, self.MSG_NOTIFY, self.hicon, 'Tasktory')
         win32gui.Shell_NotifyIcon(win32gui.NIM_ADD, nid)
 
-        # TODO: ポップアップメニューを作成する
-        self.sub_menu = win32gui.CreatePopupMenu()
-        for key, value in sorted(self.repo_map.items(), key=lambda d:d[0]):
-            win32gui.AppendMenu(self.sub_menu, win32con.MF_STRING, key, value)
-
+        # ポップアップメニューを作成する
         self.menu = win32gui.CreatePopupMenu()
-        win32gui.AppendMenu(self.menu, win32con.MF_POPUP,
-                self.sub_menu, 'Report')
-        win32gui.AppendMenu(self.menu, win32con.MF_SEPARATOR, 0, '')
-        win32gui.AppendMenu(self.menu, win32con.MF_STRING, 1024, 'Quit')
-
+        for text, item in self.com_menu:
+            self.menu = TrayIcon.create_menu(self.menu, item, text)
 
         # メッセージループに入る
         win32gui.PumpMessages()
 
-    def restart(self, hwnd, msg, wparam, lparam):
+    def start_destroy(self, hwnd, msg, wparam, lparam):
+        win32gui.DestroyWindow(hwnd)
         return
 
     def destroy(self, hwnd, msg, wparam, lparam):
         nid = (self.hwnd, 0)
         win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, nid)
-        self.conn.send((os.getpid(), 1024))
         win32gui.PostQuitMessage(0)
         return
 
     def command(self, hwnd, msg, wparam, lparam):
-        par = win32api.LOWORD(wparam)
-        if par == 1024:
-            win32gui.DestroyWindow(self.hwnd)
-            return
-
-        for key, value in self.repo_map.items():
-            if par == key:
-                self.conn.send((os.getpid(), key))
-                return
+        self.conn.send((os.getpid(), wparam))
         return
 
     def notify(self, hwnd, msg, wparam, lparam):
@@ -124,12 +111,35 @@ class TrayIcon:
         win32gui.PostMessage(self.hwnd, win32con.WM_NULL, 0, 0)
         return 1
 
+    @staticmethod
+    def create_menu(menu, item, text):
+        # 通常のメニューアイテム
+        if isinstance(item, int):
+            flag = win32con.MF_STRING
+
+        # サブメニュー
+        elif isinstance(item, list):
+            flag = win32con.MF_POPUP
+            sub_menu = win32gui.CreatePopupMenu()
+            for s,v in item:
+                sub_menu = TrayIcon.create_menu(sub_menu, v, s)
+            item = sub_menu
+
+        # セパレータ
+        elif item is None:
+            flag = win32con.MF_SEPARATOR
+            item = 0
+            text = ''
+
+        win32gui.AppendMenu(menu, flag, item, text)
+        return menu
+
 if __name__ == '__main__':
     from multiprocessing import Process, Pipe
     import os, time
 
     # アイコンのパス
-    icon_path = 'C:/home/fukata/git/tasktory/resource/tasktory.ico'
+    icon_path = 'C:/home/fukata/dev/tasktory/resource/tasktory.ico'
     # ポップアップメッセージ
     popmsg_map = {
             0 : ('ジャーナルエラー', '作業時間の重複'),
@@ -140,22 +150,29 @@ if __name__ == '__main__':
             5 : ('ファイルシステム更新', 'ジャーナルに書き出し完了'),
             }
     # レポート
-    repo_map = {
-            0 : 'all',
-            1 : 'チーム日報',
-            2 : 'チーム週報',
-            3 : '会社月報',
-            }
+    com_menu = [
+            ('Sync', 0),
+            ('Report', [
+                ('ALL', 1),
+                ('チーム週報', 2),
+                ('チーム月報', 3),
+                ]),
+            (None, None),
+            ('Quit', 4),
+            ]
 
     conn1, conn2 = Pipe()
-    p = Process(target=TrayIcon, args=(conn2, icon_path, popmsg_map, repo_map))
+    p = Process(target=TrayIcon, args=(conn2, icon_path, popmsg_map, com_menu))
     p.start()
-    hwnd = conn1.recv()
+    hwnd = conn1.recv()[1]
 
-    ret = conn1.recv()
-    print(ret)
-    if ret[0] == p.pid and ret[1] in repo_map.keys():
-        print('Command: {0} {1}'.format(ret[1], repo_map[ret[1]]))
+    while True:
+        ret = conn1.recv()
+        print(ret)
+        if ret[1] == 4:
+            print('終了します')
+            win32api.SendMessage(hwnd, TrayIcon.MSG_DESTROY, None, None)
+            break
 
     p.join()
     conn1.close()
