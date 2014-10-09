@@ -146,69 +146,6 @@ class WinMain:
 
         return
 
-    def run(self):
-        # プロセス開始
-        self.tray_icon.start()
-        self.hwnd = self.conn[0].recv()[1]
-        self.jnl_monitor.start()
-        self.fs_monitor.start()
-
-        try:
-            ignore = WinMain.UNBLOCK
-            while True:
-                # 通知が来るまでブロック
-                ret = self.conn[0].recv()
-
-                #==============================================================
-                # 自身による通知
-                #==============================================================
-                if ret[0] == os.getpid():
-                    if ret[1] == WinMain.BLOCK:
-                        ignore = WinMain.BLOCK
-                        continue
-                    elif ret[1] == WinMain.UNBLOCK:
-                        ignore == WinMain.UNBLOCK
-                        continue
-                    elif ret[1] == WinMain.QUIT:
-                        break
-
-                # 自分自身による更新は無視する
-                elif ignore == WinMain.BLOCK:
-                    continue
-
-                #==============================================================
-                # ジャーナルが更新された場合の処理
-                #==============================================================
-                if ret[0] == self.jnl_monitor.pid:
-                    self.block()
-                    try:
-                        self.update_filesystem()
-                    finally:
-                        self.unblock()
-
-                #==============================================================
-                # ファイルシステムが更新された場合の処理
-                #==============================================================
-                elif ret[0] == self.fs_monitor.pid:
-                    self.block()
-                    try:
-                        self.update_journal()
-                    finally:
-                        self.unblock()
-
-                #==============================================================
-                # トレイアイコンからコマンドが実行された場合の処理
-                #==============================================================
-                elif ret[0] == self.tray_icon.pid:
-                    self.com_map[ret[1]]()
-        finally:
-            win32api.SendMessage(self.hwnd, TrayIcon.MSG_DESTROY, None, None)
-            self.tray_icon.terminate()
-            self.jnl_monitor.terminate()
-            self.fs_monitor.terminate()
-            for conn in self.conn: conn.close()
-        return
-
     def read_journal(self):
         # ジャーナル読み込み用のコンフィグを読み込む
         with open(JOURNAL_READ_TMPL_FILE, 'r', encoding='utf-8-sig') as f:
@@ -317,6 +254,8 @@ class WinMain:
         if Manager.same_tree(self.jtree, new_jtree):
             return
 
+        print('Journal changed')
+
         # ファイルシステムからツリーを読み出す
         tree = Manager.get_tree(self.root, self.profile_name)
 
@@ -363,8 +302,10 @@ class WinMain:
         new_paths = Manager.listtask(self.root, self.profile_name)
 
         # ファイルシステムの状態に変化が無ければ無視する
-        if org_paths == new_paths:
+        if self.paths == new_paths:
             return
+
+        print('File system changed')
 
         # ファイルシステムからツリーを読み込む
         tree = Manager.get_tree(self.root, self.profile_name)
@@ -400,6 +341,76 @@ class WinMain:
         return
 
     def sync(self):
+        return
+
+    def run(self):
+        # プロセス開始
+        self.tray_icon.start()
+        self.hwnd = self.conn[0].recv()[1]
+        self.jnl_monitor.start()
+        self.fs_monitor.start()
+
+        try:
+            ignore = WinMain.UNBLOCK
+            print('Enter loop')
+            while True:
+                # 通知が来るまでブロック
+                ret = self.conn[0].recv()
+
+                #==============================================================
+                # 自身による通知
+                #==============================================================
+                if ret[0] == os.getpid():
+                    if ret[1] == WinMain.BLOCK:
+                        ignore = WinMain.BLOCK
+                        continue
+                    elif ret[1] == WinMain.UNBLOCK:
+                        ignore = WinMain.UNBLOCK
+                        continue
+                    elif ret[1] == WinMain.QUIT:
+                        break
+
+                # 自分自身による更新は無視する
+                elif ignore == WinMain.BLOCK:
+                    print('Event blocked')
+                    continue
+
+                print('Event start')
+
+                #==============================================================
+                # ジャーナルが更新された場合の処理
+                #==============================================================
+                if ret[0] == self.jnl_monitor.pid:
+                    print('Journal updated')
+                    self.block()
+                    try:
+                        self.update_filesystem()
+                    finally:
+                        self.unblock()
+
+                #==============================================================
+                # ファイルシステムが更新された場合の処理
+                #==============================================================
+                elif ret[0] == self.fs_monitor.pid:
+                    print('Filesystem updated')
+                    self.block()
+                    try:
+                        self.update_journal()
+                    finally:
+                        self.unblock()
+
+                #==============================================================
+                # トレイアイコンからコマンドが実行された場合の処理
+                #==============================================================
+                elif ret[0] == self.tray_icon.pid:
+                    print('Command executed')
+                    self.com_map[ret[1]]()
+        finally:
+            win32api.SendMessage(self.hwnd, TrayIcon.MSG_DESTROY, None, None)
+            self.tray_icon.terminate()
+            self.jnl_monitor.terminate()
+            self.fs_monitor.terminate()
+            for conn in self.conn: conn.close()
         return
 
 if __name__ == '__main__':
