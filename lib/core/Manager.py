@@ -106,6 +106,7 @@ class Manager:
         """
         if tree1 is tree2: return True
         if tree1 is None or tree2 is None: return False
+        if len(tree1) != len(tree2): return False
         for node1, node2 in zip(tree1, tree2):
             if not Manager.same(node1, node2): return False
         return True

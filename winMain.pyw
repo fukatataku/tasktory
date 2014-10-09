@@ -165,7 +165,7 @@ def prepare_process(root, journal_file, repo_map):
 
     return tray_icon, jnl_monitor, fs_monitor, hwnd, conn1, conn2
 
-def journal_updated(org_jtree, root, profile_name, journal_file, hwnd):
+def journal_updated(org_jtree, date, root, profile_name, journal_file, hwnd):
     # ジャーナルを読み込む
     new_jtree, memo = read_journal(journal_file)
 
@@ -175,6 +175,16 @@ def journal_updated(org_jtree, root, profile_name, journal_file, hwnd):
 
     # ファイルシステムからツリーを読み出す
     tree = Manager.get_tree(root, profile_name)
+
+    # 読み出したツリーの内、更新対象タスクの当日の作業時間を抹消する
+    start = datetime.datetime.combine(date, datetime.time())
+    end = start + datetime.timedelta(1)
+    start = int(start.timestamp())
+    end = int(end.timestamp())
+    for node in [tree.find(n.path()) for n in new_jtree]:
+        if node is None: continue
+        node.timetable = [t for t in node.timetable\
+                if not (start <= t[0] < end)]
 
     # マージする
     new_tree = tree + new_jtree
@@ -314,7 +324,8 @@ def main():
                 conn2.send((ownid, BLOCK))
                 try:
                     jtree, memo = journal_updated(
-                            jtree, root, profile_name, journal_file, hwnd)
+                            jtree, today, root, profile_name, journal_file,
+                            hwnd)
                 except JournalReadException:
                     # 読み込み失敗
                     message(hwnd, ERROR_JNL_READ)
