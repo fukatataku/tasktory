@@ -1,4 +1,4 @@
-#!C:/python/python3.4/python
+#!C:/python/python3.4/pythonw
 # -*- encoding:utf-8 -*-
 
 import os, datetime, configparser
@@ -37,6 +37,9 @@ class WinMain:
 
         # トレイアイコンのポップアップメニュー作成
         self.prepare_command()
+
+        # トレイアイコンのポップアップメッセージ作成
+        self.prepare_message()
 
         # サブプロセス準備
         self.prepare_process()
@@ -130,13 +133,31 @@ class WinMain:
 
         return
 
+    def prepare_message(self):
+        self.popmsg_map = {
+                TrayIcon.WP_POPUP_DEBUG : {},
+                TrayIcon.WP_POPUP_INFO : {},
+                TrayIcon.WP_POPUP_WARN : {},
+                TrayIcon.WP_POPUP_ERROR : {},
+                TrayIcon.WP_POPUP_FATAL : {},
+                }
+
+        # INFO
+        self.popmsg_map[TrayIcon.WP_POPUP_INFO] = INFO_MAP
+
+        # ERROR
+        self.popmsg_map[TrayIcon.WP_POPUP_ERROR]\
+                = dict((cls.ID, cls.MSG) for cls in ExceptionMeta.classes())
+
+        pass
+
     def prepare_process(self):
         # パイプ
         self.conn = Pipe()
 
         # トレイアイコン作成／開始
         self.tray_icon = Process(target=TrayIcon,
-                args=(self.conn[1], ICON_PATH, POPMSG_MAP, self.com_menu))
+                args=(self.conn[1], ICON_PATH, self.popmsg_map, self.com_menu))
 
         # 監視プロセス作成
         self.jnl_monitor = Process(
@@ -147,25 +168,38 @@ class WinMain:
         return
 
     def read_journal(self):
+        # ジャーナル読み込み用のテンプレートを読み込む
+        try:
+            with open(JOURNAL_READ_TMPL_FILE, 'r', encoding='utf-8-sig') as f:
+                journal_tmpl = RWTemplate(f.read())
+        except:
+            raise JournalReadTemplateReadFailedException()
+
         # ジャーナル読み込み用のコンフィグを読み込む
-        with open(JOURNAL_READ_TMPL_FILE, 'r', encoding='utf-8-sig') as f:
-            journal_tmpl = RWTemplate(f.read())
-        config = configparser.ConfigParser()
-        config.read(JOURNAL_CONF_FILE, encoding='utf-8-sig')
-        section = config['ReadTemplate']
-        taskline_tmpl = RWTemplate(section['TASKLINE'])
-        date_reg = Journal.date_regex(section['DATE'])
-        time_reg = Journal.time_regex(section['TIME'])
-        times_delim = section['TIMES_DELIM']
+        try:
+            config = configparser.ConfigParser()
+            config.read(JOURNAL_CONF_FILE, encoding='utf-8-sig')
+            section = config['ReadTemplate']
+            taskline_tmpl = RWTemplate(section['TASKLINE'])
+            date_reg = Journal.date_regex(section['DATE'])
+            time_reg = Journal.time_regex(section['TIME'])
+            times_delim = section['TIMES_DELIM']
+        except:
+            raise JournalReadConfigReadFailedException()
 
         # ファイルからジャーナルテキストを読み込む
+        if not os.path.isfile(self.journal_file):
+            raise JournalFileNotFoundException()
         with open(self.journal_file, 'r', encoding='utf-8-sig') as f:
             journal = f.read()
 
         # ジャーナルからタスクトリリストを作成する
-        tasktories, memo = Journal.tasktories(
-                journal, journal_tmpl, taskline_tmpl,
-                date_reg, time_reg, times_delim)
+        try:
+            tasktories, memo = Journal.tasktories(
+                    journal, journal_tmpl, taskline_tmpl,
+                    date_reg, time_reg, times_delim)
+        except:
+            raise JournalReadFailedException()
 
         # 同じタスクトリが複数存在する場合は例外を送出する
         paths = [Journal.foot(t).path() for t in tasktories]
@@ -182,49 +216,74 @@ class WinMain:
         return jtree, memo
 
     def write_journal(self, tree, memo):
+        # ジャーナル書き出し用のテンプレートを読み込む
+        try:
+            with open(JOURNAL_WRITE_TMPL_FILE, 'r', encoding='utf-8-sig') as f:
+                journal_tmpl = RWTemplate(f.read())
+        except:
+            raise JournalWriteTemplateReadFailedException()
+
         # ジャーナル書き出し用のコンフィグを読み込む
-        with open(JOURNAL_WRITE_TMPL_FILE, 'r', encoding='utf-8-sig') as f:
-            journal_tmpl = RWTemplate(f.read())
-        config = configparser.ConfigParser()
-        config.read(JOURNAL_CONF_FILE, encoding='utf-8-sig')
-        section = config['WriteTemplate']
-        taskline_tmpl = RWTemplate(section['TASKLINE'])
-        date_tmpl = RWTemplate(section['DATE'])
-        time_tmpl = RWTemplate(section['TIME'])
-        times_delim = section['TIMES_DELIM']
+        try:
+            config = configparser.ConfigParser()
+            config.read(JOURNAL_CONF_FILE, encoding='utf-8-sig')
+            section = config['WriteTemplate']
+            taskline_tmpl = RWTemplate(section['TASKLINE'])
+            date_tmpl = RWTemplate(section['DATE'])
+            time_tmpl = RWTemplate(section['TIME'])
+            times_delim = section['TIMES_DELIM']
+        except:
+            raise JournalWriteConfigReadFailedException()
 
         # ツリーからジャーナルテキストを作成する
-        journal = Journal.journal(
-                self.today, tree, memo, journal_tmpl, taskline_tmpl,
-                time_tmpl, times_delim, self.infinite)
+        try:
+            journal = Journal.journal(
+                    self.today, tree, memo, journal_tmpl, taskline_tmpl,
+                    time_tmpl, times_delim, self.infinite)
+        except:
+            raise JournalCreateTextFailedException()
 
         # ジャーナルテキストをファイルに書き出す
-        with open(self.journal_file, 'w', encoding='utf-8') as f:
-            f.write(journal)
+        try:
+            with open(self.journal_file, 'w', encoding='utf-8') as f:
+                f.write(journal)
+        except:
+            raise JournalWriteFailedException()
 
-        # ジャーナル書き出し設定を読み込み設定にセットする
-        with open(JOURNAL_READ_TMPL_FILE, 'w', encoding='utf-8') as f:
-            f.write(journal_tmpl.template)
-        section = config['ReadTemplate']
-        section['TASKLINE'] = taskline_tmpl.template.replace('%', '%%')
-        section['DATE'] = date_tmpl.template.replace('%', '%%')
-        section['TIME'] = time_tmpl.template.replace('%', '%%')
-        section['TIMES_DELIM'] = times_delim
-        with open(JOURNAL_CONF_FILE, 'w', encoding='utf-8') as f:
-            config.write(f)
+        # ジャーナル読み込みテンプレートを更新する
+        try:
+            with open(JOURNAL_READ_TMPL_FILE, 'w', encoding='utf-8') as f:
+                f.write(journal_tmpl.template)
+        except:
+            raise JournalReadTemplateUpdateFailedException()
+
+        # ジャーナル読み込みコンフィグを更新する
+        try:
+            section = config['ReadTemplate']
+            section['TASKLINE'] = taskline_tmpl.template.replace('%', '%%')
+            section['DATE'] = date_tmpl.template.replace('%', '%%')
+            section['TIME'] = time_tmpl.template.replace('%', '%%')
+            section['TIMES_DELIM'] = times_delim
+            with open(JOURNAL_CONF_FILE, 'w', encoding='utf-8') as f:
+                config.write(f)
+        except:
+            raise JournalReadConfigUpdateFailedException()
 
         return
 
     def write_report(self, reports):
         # レポート書き出し開始を通知する
-        self.message(INFO_REPO_START)
+        self.info(INFO_REPO_START)
 
         # ファイルシステムからタスクツリーを読み込む
         tree = Manager.get_tree(self.root, self.profile_name)
 
         for name, func in reports:
             # レポートテキストを作成する
-            repo_text = func(self.today, tree)
+            try:
+                repo_text = func(self.today, tree)
+            except:
+                raise ReportCreateTextFailedException()
 
             # レポートファイルパスを作成する
             repo_filename = self.report_name_tmpl.substitute({
@@ -239,11 +298,14 @@ class WinMain:
                 os.makedirs(os.path.join(self.report_dir, name))
 
             # ファイルに書き出す
-            with open(repo_file, 'w', encoding='utf-8') as f:
-                f.write(repo_text)
+            try:
+                with open(repo_file, 'w', encoding='utf-8') as f:
+                    f.write(repo_text)
+            except:
+                raise ReportWriteFailedException()
 
         # レポート書き出し完了を通知する
-        self.message(INFO_REPO_END)
+        self.info(INFO_REPO_END)
         return
 
     def update_filesystem(self):
@@ -254,10 +316,11 @@ class WinMain:
         if Manager.same_tree(self.jtree, new_jtree):
             return
 
-        print('Journal changed')
-
         # ファイルシステムからツリーを読み出す
-        tree = Manager.get_tree(self.root, self.profile_name)
+        try:
+            tree = Manager.get_tree(self.root, self.profile_name)
+        except:
+            raise FSReadTreeFailedException()
 
         # 読み出したツリーの内、更新対象タスクの当日の作業時間を抹消する
         start = datetime.datetime.combine(self.today, datetime.time())
@@ -270,27 +333,42 @@ class WinMain:
                     if not (start <= t[0] < end)]
 
         # マージする
-        new_tree = tree + new_jtree
+        try:
+            new_tree = tree + new_jtree
+        except:
+            TasktoryMargeFailedException()
 
         # 作業時間の重複の有無を確認する（非必須）
         if Manager.overlap(new_tree):
-            pass
+            raise TasktoryOverlapTimetableException()
 
-        # 未設定期日を補完する
+        # 未設定項目を補完する
         for node in new_tree:
+            # 期日
             if node.deadline is None:
                 node.deadline = max([n.deadline for n in node
                     if n.deadline is not None])
 
+            # ステータス
+            if node.status is None:
+                node.status = Tasktory.OPEN
+
+            # コメント
+            if node.comments is None:
+                node.comments = ''
+
         # ファイルシステムへの書き出し開始を通知する
-        self.message(INFO_FS_START)
+        self.info(INFO_FS_START)
 
         # ファイルシステムに書き出す
-        for node in new_tree:
-            Manager.put(self.root, node, self.profile_name)
+        try:
+            for node in new_tree:
+                Manager.put(self.root, node, self.profile_name)
+        except:
+            raise FSWriteTreeFailedException()
 
         # ファイルシステムへの書き出し完了を通知する
-        self.message(INFO_FS_END)
+        self.info(INFO_FS_END)
 
         # メンバ変数にセットする
         self.jtree = new_jtree
@@ -305,27 +383,34 @@ class WinMain:
         if self.paths == new_paths:
             return
 
-        print('File system changed')
-
         # ファイルシステムからツリーを読み込む
-        tree = Manager.get_tree(self.root, self.profile_name)
+        try:
+            tree = Manager.get_tree(self.root, self.profile_name)
+        except:
+            raise FSReadTreeFailedException()
 
         # ジャーナルへの書き出し開始を通知する
-        self.message(INFO_JNL_START)
+        self.info(INFO_JNL_START)
 
         # ジャーナルに書き出す
         self.write_journal(tree, self.memo)
 
         # ジャーナルへの書き出し完了を通知する
-        self.message(INFO_JNL_END)
+        self.info(INFO_JNL_END)
 
         # メンバ変数にセットする
         self.paths = new_paths
 
         return
 
-    def message(self, msg):
-        win32api.SendMessage(self.hwnd, TrayIcon.MSG_POPUP, msg, None)
+    def info(self, msg_id):
+        win32api.SendMessage(self.hwnd,
+                TrayIcon.MSG_POPUP, TrayIcon.WP_POPUP_INFO, msg_id)
+        return
+
+    def error(self, exc):
+        win32api.SendMessage(self.hwnd,
+                TrayIcon.MSG_POPUP, TrayIcon.WP_POPUP_ERROR, exc.ID)
         return
 
     def block(self):
@@ -341,6 +426,11 @@ class WinMain:
         return
 
     def sync(self):
+        # ファイルシステムを更新する
+        self.update_filesystem()
+
+        # ジャーナルを更新する
+        self.update_journal()
         return
 
     def run(self):
@@ -352,7 +442,6 @@ class WinMain:
 
         try:
             ignore = WinMain.UNBLOCK
-            print('Enter loop')
             while True:
                 # 通知が来るまでブロック
                 ret = self.conn[0].recv()
@@ -372,19 +461,18 @@ class WinMain:
 
                 # 自分自身による更新は無視する
                 elif ignore == WinMain.BLOCK:
-                    print('Event blocked')
                     continue
-
-                print('Event start')
 
                 #==============================================================
                 # ジャーナルが更新された場合の処理
                 #==============================================================
                 if ret[0] == self.jnl_monitor.pid:
-                    print('Journal updated')
                     self.block()
                     try:
                         self.update_filesystem()
+                    except TasktoryException as e:
+                        self.error(e)
+                        continue
                     finally:
                         self.unblock()
 
@@ -392,10 +480,12 @@ class WinMain:
                 # ファイルシステムが更新された場合の処理
                 #==============================================================
                 elif ret[0] == self.fs_monitor.pid:
-                    print('Filesystem updated')
                     self.block()
                     try:
                         self.update_journal()
+                    except TasktoryException as e:
+                        self.error(e)
+                        continue
                     finally:
                         self.unblock()
 
@@ -403,8 +493,14 @@ class WinMain:
                 # トレイアイコンからコマンドが実行された場合の処理
                 #==============================================================
                 elif ret[0] == self.tray_icon.pid:
-                    print('Command executed')
-                    self.com_map[ret[1]]()
+                    self.block()
+                    try:
+                        self.com_map[ret[1]]()
+                    except TasktoryException as e:
+                        self.error(e)
+                        continue
+                    finally:
+                        self.unblock()
         finally:
             win32api.SendMessage(self.hwnd, TrayIcon.MSG_DESTROY, None, None)
             self.tray_icon.terminate()
@@ -416,4 +512,3 @@ class WinMain:
 if __name__ == '__main__':
     main = WinMain()
     main.run()
-    del main

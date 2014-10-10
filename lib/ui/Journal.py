@@ -5,8 +5,6 @@ import os, re, datetime, time
 from lib.common.RWTemplate import RWTemplate
 from lib.core.Tasktory import Tasktory
 
-from lib.common.exceptions import JournalReadException
-
 # 定数
 OPEN = Tasktory.OPEN
 WAIT = Tasktory.WAIT
@@ -84,8 +82,9 @@ class Journal:
 
             # タスクトリまたはコメント
             _ = [tl.lstrip(' ')[1:].lstrip(' ') if tl.lstrip(' ')[0] == '#'
-                    else Journal.tasktory(date, key, tl, taskline_tmpl, date_reg,
-                        time_reg, times_delim) for tl in tls]
+                    else Journal.tasktory(
+                        date, key, tl, taskline_tmpl,
+                        date_reg, time_reg, times_delim) for tl in tls]
 
             # コメントをタスクトリに格納する
             prev = None
@@ -113,19 +112,25 @@ class Journal:
         taskline : ジャーナルテキストから読み出したタスクライン
         """
         # タスクラインをテンプレートに従ってパースする
-        try: taskdict = taskline_tmpl.parse(taskline)
-        except ValueError: raise JournalReadException()
+        taskdict = taskline_tmpl.parse(taskline)
 
         # タスクトリリストを作成する
-        _ = [Tasktory(n, None, status)
+        _ = [Tasktory(n, None, None)
                 for n in taskdict['PATH'].rstrip('/').split('/')]
 
         # 期日を解決する
         _[-1].deadline = Journal.deadline(date, taskdict['DEADLINE'], date_reg)
 
+        # ステータスを解決する
+        _[-1].status = status
+
         # 作業時間を解決する
-        [_[-1].add_time(s,t) for s,t in Journal.timetable(
-            date, taskdict['TIMES'], time_reg, times_delim)]
+        tb = Journal.timetable(date, taskdict['TIMES'], time_reg, times_delim)
+        for s,t in tb: _[-1].add_time(s,t)
+
+        # 中間タスクのコメントをNoneにする
+        for n in _[0:-1]:
+            n.comments = None
 
         # タスクトリリストを直列化
         task = _[0]
@@ -150,7 +155,7 @@ class Journal:
         if match1: return date.toordinal() + int(match1.group())
 
         match2 = date_reg.match(string)
-        if not match2: raise JournalReadException()
+        if not match2: raise ValueError()
 
         # 数値が２つ以上の場合は日付として解釈する
         day = int(match2.group('day'))
@@ -182,7 +187,7 @@ class Journal:
 
         # 作業時間正規表現にマッチングさせる
         matchs = [time_reg.match(p) for p in phrases if p]
-        if not all(matchs): raise JournalReadException()
+        if not all(matchs): raise ValueError()
         groupdicts = [m.groupdict() for m in matchs]
 
         # 年月日とマッチング結果からタイムスタンプを作成する

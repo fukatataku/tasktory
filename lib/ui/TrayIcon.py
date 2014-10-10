@@ -10,6 +10,12 @@ class TrayIcon:
     MSG_POPUP = win32con.WM_USER + 21
     MSG_DESTROY = win32con.WM_USER + 22
 
+    WP_POPUP_DEBUG = 0
+    WP_POPUP_INFO = 1
+    WP_POPUP_WARN = 2
+    WP_POPUP_ERROR = 3
+    WP_POPUP_FATAL = 4
+
     def __init__(self, conn, icon_path, popmsg_map, com_menu):
         # 引数をメンバ変数に格納する
         self.conn = conn
@@ -96,10 +102,23 @@ class TrayIcon:
         return
 
     def popup(self, hwnd, msg, wparam, lparam):
-        title = self.popmsg_map[wparam][0]
-        msg = self.popmsg_map[wparam][1]
+        # タイトル
+        if wparam == TrayIcon.WP_POPUP_DEBUG:
+            title = 'DEBUG'
+        elif wparam == TrayIcon.WP_POPUP_INFO:
+            title = 'INFOMATION'
+        elif wparam == TrayIcon.WP_POPUP_WARN:
+            title = 'WARNING'
+        elif wparam == TrayIcon.WP_POPUP_ERROR:
+            title = 'ERROR'
+        elif wparam == TrayIcon.WP_POPUP_FATAL:
+            title = 'FATAL'
+
+        # メッセージ
+        msg = self.popmsg_map[wparam][lparam]
+
         nid = (self.hwnd, 0, win32gui.NIF_INFO, self.MSG_NOTIFY,
-                self.hicon, 'INFOMATION', msg, 200, title)
+                self.hicon, 'Message', msg, 200, title)
         win32gui.Shell_NotifyIcon(win32gui.NIM_MODIFY, nid)
         return
 
@@ -142,12 +161,12 @@ if __name__ == '__main__':
     icon_path = 'C:/home/fukata/dev/tasktory/resource/tasktory.ico'
     # ポップアップメッセージ
     popmsg_map = {
-            0 : ('ジャーナルエラー', '作業時間の重複'),
-            1 : ('ジャーナルエラー', '同名のタスクトリ'),
-            2 : ('ジャーナル更新', 'ファイルシステムに書き出し開始'),
-            3 : ('ジャーナル更新', 'ファイルシステムに書き出し完了'),
-            4 : ('ファイルシステム更新', 'ジャーナルに書き出し開始'),
-            5 : ('ファイルシステム更新', 'ジャーナルに書き出し完了'),
+            0 :  '作業時間の重複',
+            1 :  '同名のタスクトリ',
+            2 :  'ファイルシステムに書き出し開始',
+            3 :  'ファイルシステムに書き出し完了',
+            4 :  'ジャーナルに書き出し開始',
+            5 :  'ジャーナルに書き出し完了',
             }
     # レポート
     com_menu = [

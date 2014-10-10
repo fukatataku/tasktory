@@ -97,9 +97,12 @@ class Tasktory(object):
         # 期日は新しい方を優先する
         deadline = old.deadline if new.deadline is None else new.deadline
 
+        # ステータスは新しい方を優先する
+        status = old.status if new.status is None else new.status
+
         # 新しいタスクトリを作成する
-        # 名前、ステータスは新しい方を使用する
-        ret = Tasktory(new.name, deadline, new.status)
+        # 名前は新しい方を使用する
+        ret = Tasktory(new.name, deadline, status)
 
         # IDはselfを使用する
         ret.ID = self.ID
@@ -119,8 +122,8 @@ class Tasktory(object):
         # 種別は新しい方を優先する
         ret.category = old.category if new.category is None else new.category
 
-        # コメントは新しい方を使用する
-        ret.comments = new.comments
+        # コメントは新しい方を優先する
+        ret.comments = old.comments if new.comments is None else new.comments
 
         return ret
 
