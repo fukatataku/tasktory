@@ -1,6 +1,6 @@
 # -*- encoding:utf-8 -*-
 
-import os, pickle
+import os, re, pickle
 
 class Manager:
 
@@ -123,3 +123,53 @@ class Manager:
         if task1.category != task2.category: return False
         if task1.comments != task2.comments: return False
         return True
+
+    #==========================================================================
+    # メモメソッド
+    #==========================================================================
+    start_memo = re.compile(r'^## Written at \d{4}/\d{2}/\d{2} \d{2}:\d{2}$')
+    @staticmethod
+    def get_memo(path, memo_name):
+        """
+        """
+        # ディレクトリが無ければ空リストを返す
+        if not os.path.isdir(path):
+            return []
+
+        # ファイルが無ければ空リストを返す
+        memo_file = os.path.join(path, memo_name)
+        if not os.path.isfile(memo_file):
+            return []
+
+        # ファイルを読む
+        with open(memo_file, 'r', encoding='utf-8-sig') as f:
+            all_text = f.read()
+
+        # 各テキストをリストに追加していく
+        return
+
+    @staticmethod
+    def put_memo(date, path, text, memo_name):
+        """
+        """
+        # ディレクトリが無ければ作成する
+        if not os.path.isdir(path):
+            os.makedirs(path)
+
+        # ファイルに追記する
+        memo_file = os.path.join(path, memo_name)
+        with open(memo_file, 'a', encoding='utf-8') as f:
+            f.write(date.strftime('\n\n## Written at %Y/%m/%d %H:%M\n\n'))
+            f.write(Manager.delete_blank(text))
+
+        return
+
+    head_blank_reg = re.compile(r'^\n*')
+    tail_blank_reg = re.compile(r'\n*$')
+    blank_reg = re.compile(r'\n{3,}')
+    @staticmethod
+    def delete_blank(string):
+        string = Manager.head_blank_reg.sub('', string)
+        string = Manager.tail_blank_reg.sub('', string)
+        string = Manager.blank_reg.sub(r'\n\n', string)
+        return string
