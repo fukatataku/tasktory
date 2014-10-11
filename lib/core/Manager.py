@@ -130,8 +130,7 @@ class Manager:
     start_memo = re.compile(r'^## Written at \d{4}/\d{2}/\d{2} \d{2}:\d{2}$')
     @staticmethod
     def get_memo(path, memo_name):
-        """
-        """
+        """"""
         # ディレクトリが無ければ空リストを返す
         if not os.path.isdir(path):
             return []
@@ -145,13 +144,18 @@ class Manager:
         with open(memo_file, 'r', encoding='utf-8-sig') as f:
             all_text = f.read()
 
-        # 各テキストをリストに追加していく
-        return
+        # テキストリストを作成して返す
+        text_list = [s.strip(' ') for s in all_text.split('\n')]
+        match_list = [Manager.start_memo.match(s) for s in text_list]
+        index_list = [match_list.index(m) for m in match_list if m]
+        indice = zip(index_list, index_list[1:] + [len(text_list)])
+        text_dlist = [text_list[s:e] for s,e in indice]
+        return [Manager.delete_blank('\n'.join(t[1:])+'\n')
+                for t in text_dlist]
 
     @staticmethod
-    def put_memo(date, path, text, memo_name):
-        """
-        """
+    def put_memo(dttm, path, text, memo_name):
+        """"""
         # ディレクトリが無ければ作成する
         if not os.path.isdir(path):
             os.makedirs(path)
@@ -159,7 +163,7 @@ class Manager:
         # ファイルに追記する
         memo_file = os.path.join(path, memo_name)
         with open(memo_file, 'a', encoding='utf-8') as f:
-            f.write(date.strftime('\n\n## Written at %Y/%m/%d %H:%M\n\n'))
+            f.write(dttm.strftime('\n\n## Written at %Y/%m/%d %H:%M\n\n'))
             f.write(Manager.delete_blank(text))
 
         return
