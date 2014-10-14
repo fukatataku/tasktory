@@ -212,9 +212,22 @@ class Journal:
         # タスクライン初期化
         tasklines = {OPEN: '', WAIT: '', CLOSE: '', CONST: ''}
 
+        # ジャーナルに表示するタスクトリの条件（優先度順）
+        # ・当日の作業時間が計上されているものは表示する
+        # ・ステータスがCLOSEのものは表示しない
+        # ・ステータスがCONSTで残り日数がinfiniteより大きいものは表示しない
+        # ・上記以外のものは表示する
         for node in tasktory:
-            if (node.status == CLOSE or\
-                    node.deadline - date.toordinal() > infinite): continue
+            if Journal.at_date(date, node):
+                pass
+            elif node.status == CLOSE:
+                continue
+            elif node.status == CONST and\
+                    node.deadline - date.toordinal() > infinite:
+                continue
+            else:
+                pass
+
             # タスクライン
             tasklines[node.status] += Journal.taskline(
                     date, node, taskline_tmpl, time_tmpl, times_delim) + '\n'
@@ -234,6 +247,15 @@ class Journal:
             'MEMO': '' if memo is None else memo})
 
         return journal
+
+    @staticmethod
+    def at_date(date, node):
+        """指定した日付の作業時間が計上されているかどうかを返す"""
+        start = datetime.datetime.combine(date, datetime.time())
+        end = start + datetime.timedelta(1)
+        start = int(start.timestamp())
+        end = int(end.timestamp())
+        return any([start <= s < end for s,_ in node.timetable])
 
     @staticmethod
     def taskline(date, node, taskline_tmpl, time_tmpl, times_delim):

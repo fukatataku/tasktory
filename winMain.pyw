@@ -62,7 +62,7 @@ class WinMain:
         if not os.path.isfile(os.path.join(self.root, self.profile_name)):
             Manager.put(
                     self.root,
-                    Tasktory('', self.today.toordinal() + 3650),
+                    Tasktory('', self.today.toordinal()+3650, Tasktory.CONST),
                     self.profile_name)
 
         # ジャーナルディレクトリが存在しなければ、作成する
@@ -315,13 +315,13 @@ class WinMain:
         self.info(INFO_REPO_END)
         return
 
-    def update_filesystem(self):
+    def update_filesystem(self, force=False):
         # ジャーナルを読み込む
         new_jtree, new_memo = self.read_journal()
         self.memo = new_memo
 
         # タスクの状態に変化が無ければ無視する
-        if Manager.same_tree(self.jtree, new_jtree):
+        if Manager.same_tree(self.jtree, new_jtree) and not force:
             return
 
         # ファイルシステムからツリーを読み出す
@@ -398,12 +398,12 @@ class WinMain:
                 self.info(INFO_MEMO_END)
         return
 
-    def update_journal(self):
+    def update_journal(self, force=False):
         # 現在のファイルシステムの状態を読み込む
         new_paths = Manager.listtask(self.root, self.profile_name)
 
         # ファイルシステムの状態に変化が無ければ無視する
-        if self.paths == new_paths:
+        if self.paths == new_paths and not force:
             return
 
         # ファイルシステムからツリーを読み込む
@@ -455,10 +455,10 @@ class WinMain:
 
     def sync(self):
         # ファイルシステムを更新する
-        self.update_filesystem()
+        self.update_filesystem(force=True)
 
         # ジャーナルを更新する
-        self.update_journal()
+        self.update_journal(force=True)
         return
 
     def run(self):
