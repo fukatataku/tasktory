@@ -263,16 +263,3 @@ class Journal:
             'SHOUR': start.hour, 'SMIN': form(start.minute),
             'SSEC': form(start.second), 'EHOUR': end.hour,
             'EMIN': form(end.minute), 'ESEC': form(end.second)})
-
-    #==========================================================================
-    # メモ読み取りメソッド
-    #==========================================================================
-    @staticmethod
-    def parse_memo(memo):
-        """ジャーナル内メモの内、タスクトリに関連付けられるものを取り出す"""
-        text_list = [s.strip(' ') for s in memo.split('\n')]
-        match_list = [Journal.path_reg.match(s) for s in text_list]
-        index_list = [match_list.index(m) for m in match_list if m]
-        indice = zip(index_list, index_list[1:] + [len(text_list)])
-        text_dlist = [text_list[s:e] for s,e in indice]
-        return [(t[0], '\n'.join(t[1:]) + '\n') for t in text_dlist]

@@ -27,6 +27,7 @@ INFO_FS_START   = 2
 INFO_FS_END     = 3
 INFO_REPO_START = 4
 INFO_REPO_END   = 5
+INFO_MEMO_END   = 6
 INFO_MAP = {
         INFO_JNL_START  : 'ジャーナルへの書き出しを開始します',
         INFO_JNL_END    : 'ジャーナルへの書き出しが完了しました',
@@ -34,4 +35,5 @@ INFO_MAP = {
         INFO_FS_END     : 'ファイルシステムへの書き出しが完了しました',
         INFO_REPO_START : 'レポートの書き出しを開始します',
         INFO_REPO_END   : 'レポートの書き出しが完了しました',
+        INFO_MEMO_END   : 'メモを追記しました'
         }

@@ -128,6 +128,17 @@ class Manager:
     # メモメソッド
     #==========================================================================
     start_memo = re.compile(r'^## Written at \d{4}/\d{2}/\d{2} \d{2}:\d{2}$')
+
+    @staticmethod
+    def parse_memo(memo, title_reg):
+        text_list = [s.strip(' ') for s in memo.split('\n')]
+        match_list = [title_reg.match(s) for s in text_list]
+        index_list = [match_list.index(m) for m in match_list if m]
+        indice = zip(index_list, index_list[1:] + [len(text_list)])
+        text_dlist = [text_list[s:e] for s,e in indice]
+        return [(t[0], Manager.delete_blank('\n'.join(t[1:])+'\n'))
+                for t in text_dlist]
+
     @staticmethod
     def get_memo(path, memo_name):
         """"""
@@ -142,16 +153,10 @@ class Manager:
 
         # ファイルを読む
         with open(memo_file, 'r', encoding='utf-8-sig') as f:
-            all_text = f.read()
+            text = f.read()
 
         # テキストリストを作成して返す
-        text_list = [s.strip(' ') for s in all_text.split('\n')]
-        match_list = [Manager.start_memo.match(s) for s in text_list]
-        index_list = [match_list.index(m) for m in match_list if m]
-        indice = zip(index_list, index_list[1:] + [len(text_list)])
-        text_dlist = [text_list[s:e] for s,e in indice]
-        return [Manager.delete_blank('\n'.join(t[1:])+'\n')
-                for t in text_dlist]
+        return [s for _,s in Manager.parse_memo(text, Manager.start_memo)]
 
     @staticmethod
     def put_memo(dttm, path, text, memo_name):
@@ -160,17 +165,27 @@ class Manager:
         if not os.path.isdir(path):
             os.makedirs(path)
 
+        # 余計な空白行を削除する
+        text = Manager.delete_blank(text)
+
+        # 既に記載されていれば無視する
+        memo = Manager.get_memo(path, memo_name)
+        if text in memo:
+            return False
+
         # ファイルに追記する
         memo_file = os.path.join(path, memo_name)
         with open(memo_file, 'a', encoding='utf-8') as f:
-            f.write(dttm.strftime('\n\n## Written at %Y/%m/%d %H:%M\n\n'))
-            f.write(Manager.delete_blank(text))
+            f.write(dttm.strftime('## Written at %Y/%m/%d %H:%M\n\n'))
+            f.write(text)
+            f.write('\n\n')
 
-        return
+        return True
 
     head_blank_reg = re.compile(r'^\n*')
     tail_blank_reg = re.compile(r'\n*$')
     blank_reg = re.compile(r'\n{3,}')
+
     @staticmethod
     def delete_blank(string):
         string = Manager.head_blank_reg.sub('', string)

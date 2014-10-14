@@ -1,4 +1,4 @@
-#!C:/python/python3.4/pythonw
+#!C:/python/python3.4/python
 # -*- encoding:utf-8 -*-
 
 import os, datetime, configparser
@@ -45,14 +45,12 @@ class WinMain:
         self.prepare_process()
         return
 
-    def __del__(self):
-        return
-
     def main_config(self):
         config = configparser.ConfigParser()
         config.read(MAIN_CONF_FILE, encoding='utf-8-sig')
         self.root = config['MAIN']['ROOT']
         self.profile_name = config['MAIN']['PROFILE_NAME']
+        self.memo_name = config['MAIN']['MEMO_NAME']
         self.journal_file = config['JOURNAL']['JOURNAL_FILE']
         self.infinite = int(config['JOURNAL']['INFINITE'])
         self.report_dir = config['REPORT']['REPORT_DIR']
@@ -81,10 +79,10 @@ class WinMain:
             _, memo = self.read_journal()
 
         # ファイルシステムからツリーを読み込む
-        tree = Manager.get_tree(self.root, self.profile_name)
+        self.tree = Manager.get_tree(self.root, self.profile_name)
 
         # 新しいジャーナルを書き出す
-        self.write_journal(tree, memo)
+        self.write_journal(self.tree, memo)
 
         # 新しいジャーナルを読み込む
         self.jtree, self.memo = self.read_journal()
@@ -142,12 +140,21 @@ class WinMain:
                 TrayIcon.WP_POPUP_FATAL : {},
                 }
 
+        # 例外リスト
+        classes = ExceptionMeta.classes()
+        warnings = [e for e in classes if issubclass(e, TasktoryWarning)]
+        errors = [e for e in classes if issubclass(e, TasktoryError)]
+
         # INFO
         self.popmsg_map[TrayIcon.WP_POPUP_INFO] = INFO_MAP
 
+        # WARNING
+        self.popmsg_map[TrayIcon.WP_POPUP_WARN]\
+                = dict((cls.ID, cls.MSG) for cls in warnings)
+
         # ERROR
         self.popmsg_map[TrayIcon.WP_POPUP_ERROR]\
-                = dict((cls.ID, cls.MSG) for cls in ExceptionMeta.classes())
+                = dict((cls.ID, cls.MSG) for cls in errors)
 
         pass
 
@@ -311,6 +318,7 @@ class WinMain:
     def update_filesystem(self):
         # ジャーナルを読み込む
         new_jtree, new_memo = self.read_journal()
+        self.memo = new_memo
 
         # タスクの状態に変化が無ければ無視する
         if Manager.same_tree(self.jtree, new_jtree):
@@ -371,8 +379,23 @@ class WinMain:
         self.info(INFO_FS_END)
 
         # メンバ変数にセットする
+        self.tree= new_tree
         self.jtree = new_jtree
-        self.memo = new_memo
+        return
+
+    def update_memo(self):
+        # メモを追記する
+        memo_list = Manager.parse_memo(self.memo, Journal.path_reg)
+        for path, text in memo_list:
+            node = self.tree.find(path)
+            if node is None:
+                self.warn(MemoPathNotFoundWarning)
+                continue
+            fullpath = node.path(self.root)
+            ret = Manager.put_memo(datetime.datetime.now(),
+                    fullpath, text, self.memo_name)
+            if ret:
+                self.info(INFO_MEMO_END)
         return
 
     def update_journal(self):
@@ -406,6 +429,11 @@ class WinMain:
     def info(self, msg_id):
         win32api.SendMessage(self.hwnd,
                 TrayIcon.MSG_POPUP, TrayIcon.WP_POPUP_INFO, msg_id)
+        return
+
+    def warn(self, exc):
+        win32api.SendMessage(self.hwnd,
+                TrayIcon.MSG_POPUP, TrayIcon.WP_POPUP_WARN, exc.ID)
         return
 
     def error(self, exc):
@@ -470,6 +498,7 @@ class WinMain:
                     self.block()
                     try:
                         self.update_filesystem()
+                        self.update_memo()
                     except TasktoryException as e:
                         self.error(e)
                         continue

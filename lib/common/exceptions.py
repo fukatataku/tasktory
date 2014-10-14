@@ -9,88 +9,104 @@ class ExceptionMeta(type):
     __num = 0
     __classes = []
     def __new__(cls, name, bases, namespace):
+        # 例外IDを付与する
         namespace['ID'] = cls.__num
         cls.__num += 1
+
+        # 例外を作成する
         created_class =  type.__new__(cls, name, bases, namespace)
+
+        # 作成した例外をリストに追加する
         cls.__classes.append(created_class)
+
         return created_class
 
     @classmethod
     def classes(cls):
         return cls.__classes
 
-class TasktoryException(Exception, metaclass=ExceptionMeta):
-    """タスクトリシステムで使用される例外の基底クラス"""
+class TasktoryError(Exception, metaclass=ExceptionMeta):
+    """タスクトリシステムで使用されるエラーの基底クラス"""
+    MSG = ''
+
+class TasktoryWarning(Exception, metaclass=ExceptionMeta):
+    """タスクトリシステムで使用される警告の基底クラス"""
     MSG = ''
 
 #==============================================================================
 # ジャーナル関連の例外
 #==============================================================================
-class JournalReadTemplateReadFailedException(TasktoryException):
+class JournalReadTemplateReadFailedError(TasktoryError):
     MSG = 'ジャーナル読み込みテンプレートの読み込みに失敗しました'
 
-class JournalWriteTemplateReadFailedException(TasktoryException):
+class JournalWriteTemplateReadFailedError(TasktoryError):
     MSG = 'ジャーナル書き込みテンプレートの読み込みに失敗しました'
 
-class JournalReadTemplateUpdateFailedException(TasktoryException):
+class JournalReadTemplateUpdateFailedError(TasktoryError):
     MSG = 'ジャーナル書き込みテンプレートの更新に失敗しました'
 
-class JournalReadConfigReadFailedException(TasktoryException):
+class JournalReadConfigReadFailedError(TasktoryError):
     MSG = 'ジャーナル読み込みコンフィグの読み込みに失敗しました'
 
-class JournalWriteConfigReadFailedException(TasktoryException):
+class JournalWriteConfigReadFailedError(TasktoryError):
     MSG = 'ジャーナル書き込みコンフィグの読み込みに失敗しました'
 
-class JournalReadConfigUpdateFailedException(TasktoryException):
+class JournalReadConfigUpdateFailedError(TasktoryError):
     MSG = 'ジャーナル読み込みコンフィグの更新に失敗しました'
 
-class JournalFileNotFoundException(TasktoryException):
+class JournalFileNotFoundError(TasktoryError):
     MSG = 'ジャーナルファイルが見つかりません'
 
-class JournalCreateTextFailedException(TasktoryException):
+class JournalCreateTextFailedError(TasktoryError):
     MSG = 'ジャーナルテキストの作成に失敗しました'
 
-class JournalReadFailedException(TasktoryException):
+class JournalReadFailedError(TasktoryError):
     MSG = 'ジャーナルの読み込みに失敗しました'
 
-class JournalWriteFailedException(TasktoryException):
+class JournalWriteFailedError(TasktoryError):
     MSG = 'ジャーナルの書き込みに失敗しました'
 
-class JournalDuplicateTasktoryException(TasktoryException):
+class JournalDuplicateTasktoryError(TasktoryError):
     MSG = 'ジャーナル中のタスクトリに重複があります'
 
-class JournalOverlapTimetableException(TasktoryException):
+class JournalOverlapTimetableError(TasktoryError):
     MSG = 'ジャーナル中の作業時間に重複があります'
 
 #==============================================================================
 # レポート関連の例外
 #==============================================================================
-class ReportCreateTextFailedException(TasktoryException):
+class ReportCreateTextFailedError(TasktoryError):
     MSG = 'レポートテキストの作成に失敗しました'
 
-class ReportWriteFailedException(TasktoryException):
+class ReportWriteFailedError(TasktoryError):
     MSG = 'レポートの作成に失敗しました'
 
 #==============================================================================
 # ファイルシステム関連の例外
 #==============================================================================
-class FSReadTreeFailedException(TasktoryException):
+class FSReadTreeFailedError(TasktoryError):
     MSG = 'タスクトリツリーの読み込みに失敗しました'
 
-class FSWriteTreeFailedException(TasktoryException):
+class FSWriteTreeFailedError(TasktoryError):
     MSG = 'タスクトリツリーの書き込みに失敗しました'
 
 #==============================================================================
 # タスクトリ関連の例外
 #==============================================================================
-class TasktoryMargeFailedException(TasktoryException):
+class TasktoryMargeFailedError(TasktoryError):
     MSG = 'タスクトリのマージに失敗しました'
 
-class TasktoryOverlapTimetableException(TasktoryException):
+class TasktoryOverlapTimetableError(TasktoryError):
     MSG = 'タスクトリツリー中の作業時間に重複があります'
+
+#==============================================================================
+# タスクトリ関連の例外
+#==============================================================================
+class MemoPathNotFoundWarning(TasktoryWarning):
+    MSG = 'メモに記載されたパスが見つかりません'
 
 #==============================================================================
 # その他の関連の例外
 #==============================================================================
-class UnknownException(TasktoryException):
+class UnknownError(TasktoryError):
     MSG = '失敗しました'
