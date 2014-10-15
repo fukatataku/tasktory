@@ -127,17 +127,14 @@ class Manager:
     #==========================================================================
     # メモメソッド
     #==========================================================================
-    start_memo = re.compile(r'^## Written at \d{4}/\d{2}/\d{2} \d{2}:\d{2}$')
+    stamp_reg = re.compile(
+            r'^## Written at \d{4}/\d{2}/\d{2} \d{2}:\d{2}$', re.M)
 
     @staticmethod
     def parse_memo(memo, title_reg):
-        text_list = [s.strip(' ') for s in memo.split('\n')]
-        match_list = [title_reg.match(s) for s in text_list]
-        index_list = [match_list.index(m) for m in match_list if m]
-        indice = zip(index_list, index_list[1:] + [len(text_list)])
-        text_dlist = [text_list[s:e] for s,e in indice]
-        return [(t[0], Manager.delete_blank('\n'.join(t[1:])+'\n'))
-                for t in text_dlist]
+        paths = title_reg.findall(memo)
+        texts = [Manager.delete_blank(s) for s in title_reg.split(memo)[1:]]
+        return list(zip(paths, texts))
 
     @staticmethod
     def get_memo(path, memo_name):
@@ -156,7 +153,7 @@ class Manager:
             text = f.read()
 
         # テキストリストを作成して返す
-        return [s for _,s in Manager.parse_memo(text, Manager.start_memo)]
+        return [s for _,s in Manager.parse_memo(text, Manager.stamp_reg)]
 
     @staticmethod
     def put_memo(dttm, path, text, memo_name):

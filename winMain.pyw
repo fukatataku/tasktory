@@ -1,4 +1,4 @@
-#!C:/python/python3.4/pythonw
+#!C:/python/python3.4/python
 # -*- encoding:utf-8 -*-
 
 import os, datetime, configparser
@@ -77,6 +77,9 @@ class WinMain:
         memo = ''
         if os.path.isfile(self.journal_file):
             _, memo = self.read_journal()
+
+            # タスク固有のメモ部分を捨てる
+            memo = Journal.path_reg.split(memo)[0]
 
         # ファイルシステムからツリーを読み込む
         self.tree = Manager.get_tree(self.root, self.profile_name)
@@ -180,7 +183,7 @@ class WinMain:
             with open(JOURNAL_READ_TMPL_FILE, 'r', encoding='utf-8-sig') as f:
                 journal_tmpl = RWTemplate(f.read())
         except:
-            raise JournalReadTemplateReadFailedException()
+            raise JournalReadTemplateReadFailedError()
 
         # ジャーナル読み込み用のコンフィグを読み込む
         try:
@@ -192,11 +195,11 @@ class WinMain:
             time_reg = Journal.time_regex(section['TIME'])
             times_delim = section['TIMES_DELIM']
         except:
-            raise JournalReadConfigReadFailedException()
+            raise JournalReadConfigReadFailedError()
 
         # ファイルからジャーナルテキストを読み込む
         if not os.path.isfile(self.journal_file):
-            raise JournalFileNotFoundException()
+            raise JournalFileNotFoundError()
         with open(self.journal_file, 'r', encoding='utf-8-sig') as f:
             journal = f.read()
 
@@ -206,19 +209,19 @@ class WinMain:
                     journal, journal_tmpl, taskline_tmpl,
                     date_reg, time_reg, times_delim)
         except:
-            raise JournalReadFailedException()
+            raise JournalReadFailedError()
 
         # 同じタスクトリが複数存在する場合は例外を送出する
         paths = [Journal.foot(t).path() for t in tasktories]
         if len(paths) != len(set(paths)):
-            raise JournalDuplicateTasktoryException()
+            raise JournalDuplicateTasktoryError()
 
         # タスクトリリストを統合してツリーにする
         jtree = sum(tasktories[1:], tasktories[0]) if tasktories else None
 
         # ツリーを診断する
         if jtree is not None and Manager.overlap(jtree):
-            raise JournalOverlapTimetableException()
+            raise JournalOverlapTimetableError()
 
         return jtree, memo
 
@@ -228,7 +231,7 @@ class WinMain:
             with open(JOURNAL_WRITE_TMPL_FILE, 'r', encoding='utf-8-sig') as f:
                 journal_tmpl = RWTemplate(f.read())
         except:
-            raise JournalWriteTemplateReadFailedException()
+            raise JournalWriteTemplateReadFailedError()
 
         # ジャーナル書き出し用のコンフィグを読み込む
         try:
@@ -240,7 +243,7 @@ class WinMain:
             time_tmpl = RWTemplate(section['TIME'])
             times_delim = section['TIMES_DELIM']
         except:
-            raise JournalWriteConfigReadFailedException()
+            raise JournalWriteConfigReadFailedError()
 
         # ツリーからジャーナルテキストを作成する
         try:
@@ -248,21 +251,21 @@ class WinMain:
                     self.today, tree, memo, journal_tmpl, taskline_tmpl,
                     time_tmpl, times_delim, self.infinite)
         except:
-            raise JournalCreateTextFailedException()
+            raise JournalCreateTextFailedError()
 
         # ジャーナルテキストをファイルに書き出す
         try:
             with open(self.journal_file, 'w', encoding='utf-8') as f:
                 f.write(journal)
         except:
-            raise JournalWriteFailedException()
+            raise JournalWriteFailedError()
 
         # ジャーナル読み込みテンプレートを更新する
         try:
             with open(JOURNAL_READ_TMPL_FILE, 'w', encoding='utf-8') as f:
                 f.write(journal_tmpl.template)
         except:
-            raise JournalReadTemplateUpdateFailedException()
+            raise JournalReadTemplateUpdateFailedError()
 
         # ジャーナル読み込みコンフィグを更新する
         try:
@@ -274,7 +277,7 @@ class WinMain:
             with open(JOURNAL_CONF_FILE, 'w', encoding='utf-8') as f:
                 config.write(f)
         except:
-            raise JournalReadConfigUpdateFailedException()
+            raise JournalReadConfigUpdateFailedError()
 
         return
 
@@ -290,7 +293,7 @@ class WinMain:
             try:
                 repo_text = func(self.today, tree)
             except:
-                raise ReportCreateTextFailedException()
+                raise ReportCreateTextFailedError()
 
             # レポートファイルパスを作成する
             repo_filename = self.report_name_tmpl.substitute({
@@ -309,7 +312,7 @@ class WinMain:
                 with open(repo_file, 'w', encoding='utf-8') as f:
                     f.write(repo_text)
             except:
-                raise ReportWriteFailedException()
+                raise ReportWriteFailedError()
 
         # レポート書き出し完了を通知する
         self.info(INFO_REPO_END)
@@ -328,7 +331,7 @@ class WinMain:
         try:
             tree = Manager.get_tree(self.root, self.profile_name)
         except:
-            raise FSReadTreeFailedException()
+            raise FSReadTreeFailedError()
 
         # 読み出したツリーの内、更新対象タスクの当日の作業時間を抹消する
         start = datetime.datetime.combine(self.today, datetime.time())
@@ -344,11 +347,11 @@ class WinMain:
         try:
             new_tree = tree + new_jtree
         except:
-            TasktoryMargeFailedException()
+            TasktoryMargeFailedError()
 
         # 作業時間の重複の有無を確認する（非必須）
         if Manager.overlap(new_tree):
-            raise TasktoryOverlapTimetableException()
+            raise TasktoryOverlapTimetableError()
 
         # 未設定項目を補完する
         for node in new_tree:
@@ -373,7 +376,7 @@ class WinMain:
             for node in new_tree:
                 Manager.put(self.root, node, self.profile_name)
         except:
-            raise FSWriteTreeFailedException()
+            raise FSWriteTreeFailedError()
 
         # ファイルシステムへの書き出し完了を通知する
         self.info(INFO_FS_END)
@@ -392,9 +395,8 @@ class WinMain:
                 self.warn(MemoPathNotFoundWarning)
                 continue
             fullpath = node.path(self.root)
-            ret = Manager.put_memo(datetime.datetime.now(),
-                    fullpath, text, self.memo_name)
-            if ret:
+            if Manager.put_memo(
+                    datetime.datetime.now(), fullpath, text, self.memo_name):
                 self.info(INFO_MEMO_END)
         return
 
@@ -410,7 +412,7 @@ class WinMain:
         try:
             tree = Manager.get_tree(self.root, self.profile_name)
         except:
-            raise FSReadTreeFailedException()
+            raise FSReadTreeFailedError()
 
         # ジャーナルへの書き出し開始を通知する
         self.info(INFO_JNL_START)
@@ -499,7 +501,7 @@ class WinMain:
                     try:
                         self.update_filesystem()
                         self.update_memo()
-                    except TasktoryException as e:
+                    except TasktoryError as e:
                         self.error(e)
                         continue
                     finally:
@@ -512,7 +514,7 @@ class WinMain:
                     self.block()
                     try:
                         self.update_journal()
-                    except TasktoryException as e:
+                    except TasktoryError as e:
                         self.error(e)
                         continue
                     finally:
@@ -525,7 +527,7 @@ class WinMain:
                     self.block()
                     try:
                         self.com_map[ret[1]]()
-                    except TasktoryException as e:
+                    except TasktoryError as e:
                         self.error(e)
                         continue
                     finally:

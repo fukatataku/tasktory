@@ -18,7 +18,7 @@ class Journal:
     tail_reg = re.compile(r'([^a-zA-Z0-9_%{}]+%{?YEAR}?)$')
     delim_reg = re.compile(r'([^a-zA-Z0-9_%{}]+)')
 
-    path_reg = re.compile(r'^(/[^\\/:*?"<>|]*)+\s*$')
+    path_reg = re.compile(r'^(?:/[^\\/:*?"<>|\s]*)+$', re.M)
 
     #==========================================================================
     # 正規表現生成メソッド

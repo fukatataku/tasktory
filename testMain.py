@@ -2,13 +2,18 @@
 #!python3
 # -*- encoding:utf-8 -*-
 
-from lib.common.exceptions import *
+MEMO = """
+/ProjectA/TaskA/step1
+hogehoge
+
+/ProjectA/TaskA/step1
+fugafuga
+"""
+
+from lib.core.Manager import Manager
+from lib.ui.Journal import Journal
 
 if __name__ == '__main__':
-    print('=== Warning ===')
-    for e in [e for e in ExceptionMeta.classes() if issubclass(e, TasktoryWarning)]:
-        print(e)
-    print('=== Error ===')
-    for e in [e for e in ExceptionMeta.classes() if issubclass(e, TasktoryError)]:
-        print(e)
+    ret = Manager.parse_memo(MEMO, Journal.path_reg)
+    print(ret)
     pass
