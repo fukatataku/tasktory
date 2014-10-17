@@ -117,12 +117,28 @@ class WinMain:
         iD = next(gen)
         reports = Report.reports()
         self.com_map[iD] = lambda: self.write_report(reports)
-        sub_menu.append(('All', iD))
+        sub_menu.append(('ALL', iD))
         for name, func in reports:
             iD = next(gen)
             self.com_map[iD] = lambda: self.write_report([(name, func)])
             sub_menu.append((name, iD))
         self.com_menu.append(('Report', sub_menu))
+
+        # オープンコマンド
+        sub_menu = []
+        iD = next(gen)
+        self.com_map[iD] = lambda: self.explorer(self.root)
+        sub_menu.append(('Work Dir', iD))
+
+        iD = next(gen)
+        self.com_map[iD] = lambda: self.explorer(self.journal_file)
+        sub_menu.append(('Journal', iD))
+
+        iD = next(gen)
+        self.com_map[iD] = lambda: self.explorer(self.report_dir)
+        sub_menu.append(('Report Dir', iD))
+
+        self.com_menu.append(('Open', sub_menu))
 
         # セパレータ
         self.com_menu.append((None, None))
@@ -462,6 +478,12 @@ class WinMain:
         # ジャーナルを更新する
         self.update_journal(force=True)
         return
+
+    def explorer(self, path):
+        cmd = 'explorer \"{}\"'.format(path.replace('/', '\\'))
+        if os.path.isfile(path):
+            cmd += ',/select'
+        return os.system(cmd)
 
     def run(self):
         # プロセス開始
