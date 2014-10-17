@@ -3,7 +3,38 @@
     <head>
         <meta charset='UTF-8'>
         <title>Summary</title>
+        <style type="text/css">
+<!--
+body {font-family: "courier new"}
+-->
+        </style>
     </head>
     <body>
+        <table>
+            <thead>
+                <tr>
+                    <th>NAME</th>
+                    <th>STATUS</th>
+                    <th>DEADLINE</th>
+                    <th>REST DAYS</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr><td>Project</td><td>CONST</td><td>-</td></tr>
+                <tr><td>|-- TaskA</td><td>OPEN</td><td>2014/10/22</td></tr>
+                <tr><td>|&nbsp;&nbsp;&nbsp;|-- step1</td><td>CLOSE</td><td>2014/10/20</td></tr>
+                <tr><td>|&nbsp;&nbsp;&nbsp;|-- step2</td><td>OPEN</td><td>2014/10/21</td></tr>
+                <tr><td>|&nbsp;&nbsp;&nbsp;`-- step3</td><td>WAIT</td><td>2014/10/22</td></tr>
+                <tr><td>|-- TaskB</td><td>OPEN</td><td>2014/10/24</td></tr>
+                <tr><td>|&nbsp;&nbsp;&nbsp;|-- step1</td><td>OPEN</td><td>2014/10/22</td></tr>
+                <tr><td>|&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;|-- hoge</td><td>OPEN</td><td>2014/10/22</td></tr>
+                <tr><td>|&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;|-- fuga</td><td>OPEN</td><td>2014/10/22</td></tr>
+                <tr><td>|&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;`-- piyo</td><td>OPEN</td><td>2014/10/22</td></tr>
+                <tr><td>|&nbsp;&nbsp;&nbsp;`-- step2</td><td>OPEN</td><td>2014/10/21</td></tr>
+                <tr><td>`-- TaskC</td><td>OPEN</td><td>2014/10/26</td></tr>
+                <tr><td></td><td></td><td></td></tr>
+            </tbody>
+        </table>
     </body>
 </html>

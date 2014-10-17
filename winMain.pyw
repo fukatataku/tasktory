@@ -1,4 +1,4 @@
-#!C:/python/python3.4/pythonw
+#!C:/python/python3.4/python
 # -*- encoding:utf-8 -*-
 
 import os, datetime, configparser
@@ -62,7 +62,7 @@ class WinMain:
         if not os.path.isfile(os.path.join(self.root, self.profile_name)):
             Manager.put(
                     self.root,
-                    Tasktory('', self.today.toordinal()+3650, Tasktory.CONST),
+                    Tasktory('', self.today.toordinal() + 2*self.infinite),
                     self.profile_name)
 
         # ジャーナルディレクトリが存在しなければ、作成する
@@ -223,7 +223,7 @@ class WinMain:
         try:
             tasktories, memo = Journal.tasktories(
                     journal, journal_tmpl, taskline_tmpl,
-                    date_reg, time_reg, times_delim)
+                    date_reg, time_reg, times_delim, self.infinite)
         except:
             raise JournalReadFailedError()
 

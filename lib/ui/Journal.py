@@ -13,6 +13,7 @@ CONST = Tasktory.CONST
 
 class Journal:
 
+    inf_reg = re.compile(r'^inf$', re.I)
     num_reg = re.compile(r'-?\d+$')
     head_reg = re.compile(r'^(%{?YEAR}?[^a-zA-Z0-9_%{}]+)')
     tail_reg = re.compile(r'([^a-zA-Z0-9_%{}]+%{?YEAR}?)$')
@@ -56,7 +57,7 @@ class Journal:
     #==========================================================================
     @staticmethod
     def tasktories(journal, journal_tmpl, taskline_tmpl,
-            date_reg, time_reg, times_delim):
+            date_reg, time_reg, times_delim, infinite):
         """ジャーナルテキストを読み込んでパスとタスクトリのペアのリストを返す
         メモがあればそれも返す
         """
@@ -85,8 +86,8 @@ class Journal:
             # タスクトリまたはコメント
             _ = [tl.lstrip(' ')[1:].lstrip(' ') if tl.lstrip(' ')[0] == '#'
                     else Journal.tasktory(
-                        date, key, tl, taskline_tmpl,
-                        date_reg, time_reg, times_delim) for tl in tls]
+                        date, key, tl, taskline_tmpl, date_reg,
+                        time_reg, times_delim, infinite) for tl in tls]
 
             # コメントをタスクトリに格納する
             prev = None
@@ -107,7 +108,7 @@ class Journal:
 
     @staticmethod
     def tasktory(date, status, taskline,
-            taskline_tmpl, date_reg, time_reg, times_delim):
+            taskline_tmpl, date_reg, time_reg, times_delim, infinite):
         """タスクラインからタスクトリを生成したタスクトリを返す
         date : ジャーナルの日付（datetime.dateオブジェクト）
         status : タスクラインのステータス
@@ -121,7 +122,8 @@ class Journal:
                 for n in taskdict['PATH'].rstrip('/').split('/')]
 
         # 期日を解決する
-        _[-1].deadline = Journal.deadline(date, taskdict['DEADLINE'], date_reg)
+        _[-1].deadline = Journal.deadline(
+                date, taskdict['DEADLINE'], date_reg, infinite)
 
         # ステータスを解決する
         _[-1].status = status
@@ -149,9 +151,13 @@ class Journal:
         return Journal.foot(task.children[0]) if task.children else task
 
     @staticmethod
-    def deadline(date, string, date_reg):
+    def deadline(date, string, date_reg, infinite):
         """タスクラインパース結果から期日を取得する
         """
+        # 無期限の場合は・・・
+        match0 = Journal.inf_reg.match(string)
+        if match0: return date.toordinal() + 2 * infinite
+
         # 数値が１つだけの場合は残り日数として解釈する
         match1 = Journal.num_reg.match(string)
         if match1: return date.toordinal() + int(match1.group())
@@ -214,23 +220,24 @@ class Journal:
 
         # ジャーナルに表示するタスクトリの条件（優先度順）
         # ・当日の作業時間が計上されているものは表示する
+        # ・ステータスがOPENで残り日数がinfiniteより大きいものは表示しない
         # ・ステータスがCLOSEのものは表示しない
-        # ・ステータスがCONSTで残り日数がinfiniteより大きいものは表示しない
         # ・上記以外のものは表示する
         for node in tasktory:
             if Journal.at_date(date, node):
                 pass
-            elif node.status == CLOSE:
-                continue
-            elif node.status == CONST and\
+            elif node.status == OPEN and\
                     node.deadline - date.toordinal() > infinite:
+                continue
+            elif node.status == CLOSE:
                 continue
             else:
                 pass
 
             # タスクライン
             tasklines[node.status] += Journal.taskline(
-                    date, node, taskline_tmpl, time_tmpl, times_delim) + '\n'
+                    date, node, taskline_tmpl, time_tmpl,
+                    times_delim, infinite) + '\n'
             # コメント
             if node.comments: tasklines[node.status] += '\n'.join(
                     [' # ' + c for c in node.comments.split('\n')]) + '\n'
@@ -258,9 +265,12 @@ class Journal:
         return any([start <= s < end for s,_ in node.timetable])
 
     @staticmethod
-    def taskline(date, node, taskline_tmpl, time_tmpl, times_delim):
+    def taskline(date, node, taskline_tmpl, time_tmpl, times_delim, infinite):
         """タスクラインを取得する
         """
+        # 期日
+        rest_days = node.deadline - date.toordinal()
+
         # 作業時間
         times_phrase = times_delim.join([
             Journal.time_phrase(s,t,time_tmpl)
@@ -268,7 +278,7 @@ class Journal:
 
         return taskline_tmpl.substitute({
             'PATH': node.path(),
-            'DEADLINE': node.deadline - date.toordinal(),
+            'DEADLINE': rest_days if rest_days <= infinite else 'inf',
             'TIMES': times_phrase})
 
     @staticmethod
