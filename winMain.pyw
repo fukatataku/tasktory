@@ -1,4 +1,4 @@
-#!C:/python/python3.4/python
+#!C:/python/python3.4/pythonw
 # -*- encoding:utf-8 -*-
 
 import os, datetime, configparser
