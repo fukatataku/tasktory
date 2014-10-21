@@ -79,7 +79,7 @@ class WinMain:
             _, memo = self.read_journal()
 
             # タスク固有のメモ部分を捨てる
-            memo = Journal.path_reg.split(memo)[0]
+            memo = Journal.title_reg.split(memo)[0]
 
         # ファイルシステムからツリーを読み込む
         self.tree = Manager.get_tree(self.root, self.profile_name)
@@ -404,8 +404,9 @@ class WinMain:
 
     def update_memo(self):
         # メモを追記する
-        memo_list = Manager.parse_memo(self.memo, Journal.path_reg)
-        for path, text in memo_list:
+        memo_list = Manager.parse_memo(self.memo, Journal.title_reg)
+        for title, text in memo_list:
+            path = Journal.path_reg.search(title).group()
             node = self.tree.find(path)
             if node is None:
                 self.warn(MemoPathNotFoundWarning)

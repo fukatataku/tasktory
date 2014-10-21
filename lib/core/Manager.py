@@ -132,9 +132,9 @@ class Manager:
 
     @staticmethod
     def parse_memo(memo, title_reg):
-        paths = title_reg.findall(memo)
+        titles = title_reg.findall(memo)
         texts = [Manager.delete_blank(s) for s in title_reg.split(memo)[1:]]
-        return list(zip(paths, texts))
+        return list(zip(titles, texts))
 
     @staticmethod
     def get_memo(path, memo_name):
