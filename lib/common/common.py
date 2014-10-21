@@ -17,6 +17,10 @@ JOURNAL_CONF_FILE = os.path.join(CONF_DIR, 'journal.conf')
 JOURNAL_READ_TMPL_FILE = os.path.join(TMPL_DIR, 'journal.read.tmpl')
 JOURNAL_WRITE_TMPL_FILE = os.path.join(TMPL_DIR, 'journal.write.tmpl')
 
+# サマリー関連ファイル
+SUMMARY_TMPL_FILE_NAME = 'summary.tmpl'
+SUMMARY_HTML_FILE_NAME = 'summary.html'
+
 # トレイアイコン関連ファイル
 ICON_PATH = os.path.join(RSRC_DIR, 'tasktory.ico')
 

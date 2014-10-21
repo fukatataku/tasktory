@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset='UTF-8'>
+        <title>Summary</title>
+        <style type="text/css">
+<!--
+body {font-family: "courier new"}
+-->
+        </style>
+{%- macro indent(node) -%}
+{{ '&nbsp;&nbsp;' * (node.level()-1) + '* ' }}
+{%- endmacro -%}
+    </head>
+    <body>
+        <table>
+            <thead>
+                <tr>
+                    <th>NAME</th>
+                    <th>STATUS</th>
+                    <th>DEADLINE</th>
+                    <th>REST</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for node in tree if not node.level() == 0 -%}
+                <tr>
+                    <td>{{ indent(node) + node.name }}</td>
+                    <td>{{ node.status }}</td>
+                    <td>{{ node.deadline_str if node.rest_days < 36500 else '-' }}</td>
+                    <td>{{ node.rest_days if node.rest_days < 36500 else '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </body>
+</html>

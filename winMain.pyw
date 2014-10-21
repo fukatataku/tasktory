@@ -5,6 +5,7 @@ import os, datetime, configparser
 from multiprocessing import Process, Pipe
 
 import win32api
+from jinja2 import Environment, FileSystemLoader
 
 from lib.core.Tasktory import Tasktory
 from lib.core.Manager import Manager
@@ -70,6 +71,10 @@ class WinMain:
         if not os.path.isdir(journal_dir):
             os.makedirs(journal_dir)
 
+        # レポートディレクトリが存在しなければ、作成する
+        if not os.path.isdir(self.report_dir):
+            os.makedirs(self.report_dir)
+
         return
 
     def prepare(self):
@@ -111,6 +116,11 @@ class WinMain:
         iD = next(gen)
         self.com_map[iD] = self.sync
         self.com_menu.append(('Sync', iD))
+
+        # サマリーコマンド
+        iD = next(gen)
+        self.com_map[iD] = self.render
+        self.com_menu.append(('Summary', iD))
 
         # レポートコマンド
         sub_menu = []
@@ -478,6 +488,34 @@ class WinMain:
 
         # ジャーナルを更新する
         self.update_journal(force=True)
+        return
+
+    def render(self):
+        try:
+            # テンプレートを初期化する
+            env = Environment(loader=FileSystemLoader(TMPL_DIR))
+            tmpl = env.get_template(SUMMARY_TMPL_FILE_NAME)
+
+            # ツリーを加工する
+            tree = self.tree.deepcopy()
+            for node in tree:
+                setattr(node, 'dateline_str', datetime.date.fromordinal(
+                    node.deadline).strftime('%Y/%m/%d'))
+                setattr(node, 'rest_days',
+                    node.deadline - self.today.toordinal())
+
+            # レンダリング
+            html = tmpl.render(tree=tree)
+            path = os.path.join(self.report_dir, SUMMARY_HTML_FILE_NAME)
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(html)
+
+            # 表示する
+            cmd = 'explorer \"{}\"'.format(path.replace('/', '\\'))
+            os.system(cmd)
+        except:
+            self.warn(SummaryHTMLRenderingFailedWarning)
+
         return
 
     def explorer(self, path):
