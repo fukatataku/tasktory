@@ -499,7 +499,7 @@ class WinMain:
             # ツリーを加工する
             tree = self.tree.deepcopy()
             for node in tree:
-                setattr(node, 'dateline_str', datetime.date.fromordinal(
+                setattr(node, 'deadline_str', datetime.date.fromordinal(
                     node.deadline).strftime('%Y/%m/%d'))
                 setattr(node, 'rest_days',
                     node.deadline - self.today.toordinal())
