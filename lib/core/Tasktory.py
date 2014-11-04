@@ -86,44 +86,41 @@ class Tasktory(object):
     # 数値型エミュレート
     #==========================================================================
     def __add__(self, other):
-        """２つのタスクトリをマージする
-        """
+        """２つのタスクトリをマージする"""
         if self != other:
             raise ValueError()
 
-        # self, otherをタイムスタンプの大小関係により再アサインする
-        old, new = sorted((self, other))
-
-        # 期日は新しい方を優先する
-        deadline = old.deadline if new.deadline is None else new.deadline
+        # 期日はotherを優先する
+        deadline = self.deadline if other.deadline is None else other.deadline
 
         # ステータスは新しい方を優先する
-        status = old.status if new.status is None else new.status
+        status = self.status if other.status is None else other.status
 
         # 新しいタスクトリを作成する
-        # 名前は新しい方を使用する
-        ret = Tasktory(new.name, deadline, status)
+        # 名前はどっちでも良い
+        ret = Tasktory(self.name, deadline, status)
 
         # IDはselfを使用する
         ret.ID = self.ID
 
         # 作業時間は結合する。
-        for s,t in old.timetable + new.timetable: ret.add_time(s,t)
+        for s,t in self.timetable + other.timetable: ret.add_time(s,t)
 
-        # 親タスクトリは新しい方を優先する
-        ret.parent = new.parent if new.parent else old.parent
+        # 親タスクトリはotherを優先する
+        ret.parent = other.parent if other.parent else self.parent
 
         # 子タスクトリリスト
-        _ = other.children + self.children
+        _ = self.children + other.children
         while _:
             c = _.pop(0)
-            ret.append((_.pop(_.index(c)) + c) if c in _ else c.deepcopy())
+            ret.append((c + _.pop(_.index(c))) if c in _ else c.deepcopy())
 
-        # 種別は新しい方を優先する
-        ret.category = old.category if new.category is None else new.category
+        # 種別はotherを優先する
+        ret.category = self.category if other.category is None\
+                else other.category
 
-        # コメントは新しい方を優先する
-        ret.comments = old.comments if new.comments is None else new.comments
+        # コメントはotherを使用する
+        ret.comments = other.comments
 
         return ret
 
