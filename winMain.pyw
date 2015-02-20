@@ -324,8 +324,8 @@ class WinMain:
             # レポートファイルパスを作成する
             repo_filename = self.report_name_tmpl.substitute({
                 'YEAR' : str(self.today.year),
-                'MONTH' : str(self.today.month),
-                'DAY' : str(self.today.day),
+                'MONTH' : '{:02}'.format(self.today.month),
+                'DAY' : '{:02}'.format(self.today.day),
                 })
             repo_file = os.path.join(self.report_dir, name, repo_filename)
 
